@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REVISIÓN · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:20px;
+  font-weight:900;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+  border:0;
+  border-radius:12px;
+  padding:8px 12px;
+  font-weight:900;
+}
+
+.contenido{
+  padding:16px;
+}
+
+.card{
+  background:white;
+  border-radius:22px;
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+}
+
+.titulo{
+  font-size:22px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+
+.detalle{
+  color:#4f5f69;
+  margin-top:6px;
+  font-size:14px;
+}
+
+.estado{
+  display:inline-block;
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:900;
+  margin-top:8px;
+}
+
+.rojo{
+  background:#ffd6d6;
+  color:#9b0000;
+}
+
+.amarillo{
+  background:#fff3cd;
+  color:#7a4d00;
+}
+
+.verde{
+  background:#d4edda;
+  color:#155724;
+}
+
+button{
+  width:100%;
+  border:0;
+  border-radius:14px;
+  padding:12px;
+  font-size:15px;
+  font-weight:900;
+  margin-top:10px;
+  background:#17303d;
+  color:white;
+}
+
+.hecho{
+  background:#48a530;
+}
+
+.borrar{
+  background:#c00000;
+}
+
+.crear{
+  background:#17303d;
+}
+
+input{
+  width:100%;
+  padding:13px;
+  border-radius:14px;
+  border:1px solid #b8c2ca;
+  font-size:16px;
+  margin-top:8px;
+}
+
+.vacio{
+  background:white;
+  border-radius:22px;
+  padding:20px;
+  text-align:center;
+  font-weight:900;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  🔎 REVISIÓN
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+    <div class="titulo">Centro de control</div>
+
+    <div class="detalle">
+      MONOLITO reúne aquí avisos importantes y tareas operativas del negocio.
+    </div>
+  </div>
+
+  <div id="resumen"></div>
+
+  <div class="card">
+
+    <div class="titulo">➕ Nueva tarea</div>
+
+    <input
+      id="nuevaTarea"
+      placeholder="Ejemplo: limpiar neveras"
+    >
+
+    <button class="crear" onclick="crearTarea()">
+      Crear tarea
+    </button>
+
+  </div>
+
+  <div id="tareas"></div>
+
+</div>
+
+<script>
+
+function volver(){
+  window.location.href="index.html";
+}
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function nivelActual(){
+  return localStorage.getItem("nivel") || "";
+}
+
+function esHosteleria(){
+
+  const u = usuarioActual().toUpperCase();
+  const n = nivelActual().toUpperCase();
+
+  return (
+    n === "HOSTELERIA" ||
+    u === "JAVI" ||
+    u === "JAVIER" ||
+    u === "SILVIA" ||
+    u === "HOSTELERO"
+  );
+}
+
+function leerIncidencias(){
+  return JSON.parse(localStorage.getItem("incidencias") || "[]");
+}
+
+function leerComunicaciones(){
+
+  const nuevas =
+    JSON.parse(localStorage.getItem("comunicaciones_monolito") || "[]");
+
+  const antiguas =
+    JSON.parse(localStorage.getItem("comunicaciones") || "[]");
+
+  return nuevas.concat(antiguas);
+}
+
+function leerCalendario(){
+  return JSON.parse(localStorage.getItem("calendario") || "{}");
+}
+
+function leerTareas(){
+  return JSON.parse(localStorage.getItem("tareas_revision_monolito") || "[]");
+}
+
+function guardarTareas(data){
+  localStorage.setItem(
+    "tareas_revision_monolito",
+    JSON.stringify(data)
+  );
+}
+
+function contarIncidencias(){
+  return leerIncidencias().filter(x=>!x.resuelta).length;
+}
+
+function contarComunicaciones(){
+  return leerComunicaciones().filter(x=>!x.resuelta && !x.hecha).length;
+}
+
+function contarCalendario(){
+
+  const data = leerCalendario();
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const limite = new Date(hoy);
+  limite.setDate(hoy.getDate()+7);
+
+  let total = 0;
+
+  Object.values(data).forEach(r=>{
+
+    if(!r.fecha || r.hecha) return;
+
+    const f = new Date(r.fecha + "T12:00:00");
+
+    if(f >= hoy && f <= limite){
+      total++;
+    }
+  });
+
+  return total;
+}
+
+function diasDesde(fechaTexto){
+
+  if(!fechaTexto) return null;
+
+  const partes = fechaTexto.split(",");
+  const fecha = partes[0];
+
+  const trozos = fecha.split("/");
+
+  if(trozos.length !== 3) return null;
+
+  const d = new Date(
+    Number(trozos[2]),
+    Number(trozos[1]) - 1,
+    Number(trozos[0])
+  );
+
+  const hoy = new Date();
+
+  hoy.setHours(0,0,0,0);
+  d.setHours(0,0,0,0);
+
+  return Math.floor(
+    (hoy - d) / (1000*60*60*24)
+  );
+}
+
+function crearTarea(){
+
+  const input =
+    document.getElementById("nuevaTarea");
+
+  const texto =
+    input.value.trim();
+
+  if(!texto){
+
+    alert("Escribe una tarea.");
+    return;
+  }
+
+  let data = leerTareas();
+
+  data.unshift({
+    id:Date.now(),
+    texto:texto,
+    pendiente:true,
+    ultimaFecha:"",
+    ultimoUsuario:""
+  });
+
+  guardarTareas(data);
+
+  input.value="";
+
+  pintar();
+}
+
+function marcarTarea(id){
+
+  let data = leerTareas();
+
+  data = data.map(t=>{
+
+    if(t.id === id){
+
+      t.pendiente = false;
+
+      t.ultimaFecha =
+        new Date().toLocaleString("es-ES");
+
+      t.ultimoUsuario =
+        usuarioActual();
+    }
+
+    return t;
+  });
+
+  guardarTareas(data);
+
+  pintar();
+}
+
+function volverPendiente(id){
+
+  let data = leerTareas();
+
+  data = data.map(t=>{
+
+    if(t.id === id){
+      t.pendiente = true;
+    }
+
+    return t;
+  });
+
+  guardarTareas(data);
+
+  pintar();
+}
+
+function borrarTarea(id){
+
+  if(!esHosteleria()){
+
+    alert(
+      "Solo HOSTELERÍA puede borrar tareas."
+    );
+
+    return;
+  }
+
+  const tarea =
+    leerTareas().find(t=>t.id===id);
+
+  if(!tarea) return;
+
+  if(
+    !confirm(
+      "Vas a borrar esta tarea:\n\n" +
+      tarea.texto +
+      "\n\n¿Estás seguro?"
+    )
+  ){
+    return;
+  }
+
+  let data =
+    leerTareas().filter(t=>t.id!==id);
+
+  guardarTareas(data);
+
+  pintar();
+}
+
+function pintarResumen(){
+
+  const inc = contarIncidencias();
+  const com = contarComunicaciones();
+  const cal = contarCalendario();
+
+  const pendientes =
+    leerTareas().filter(t=>t.pendiente).length;
+
+  let html = `
+    <div class="card">
+
+      <div class="titulo">
+        Estado actual
+      </div>
+
+      <div class="estado ${inc>0 ? "rojo" : "verde"}">
+        ${inc>0 ? "🔴" : "🟢"} Incidencias: ${inc}
+      </div>
+
+      <div class="estado ${com>0 ? "amarillo" : "verde"}">
+        ${com>0 ? "🟡" : "🟢"} Comunicaciones: ${com}
+      </div>
+
+      <div class="estado ${cal>0 ? "amarillo" : "verde"}">
+        ${cal>0 ? "🟡" : "🟢"} Calendario 7 días: ${cal}
+      </div>
+
+      <div class="estado ${pendientes>0 ? "amarillo" : "verde"}">
+        ${pendientes>0 ? "🟡" : "🟢"} Tareas pendientes: ${pendientes}
+      </div>
+
+    </div>
+  `;
+
+  document.getElementById("resumen").innerHTML = html;
+}
+
+function pintarTareas(){
+
+  const data = leerTareas();
+
+  let html = `
+    <div class="card">
+
+      <div class="titulo">
+        Tareas operativas
+      </div>
+
+      <div class="detalle">
+        Cada tarea guarda quién la realizó,
+        cuándo se hizo y hace cuántos días.
+      </div>
+
+    </div>
+  `;
+
+  if(data.length === 0){
+
+    html += `
+      <div class="vacio">
+        No hay tareas creadas.
+      </div>
+    `;
+
+    document.getElementById("tareas").innerHTML = html;
+
+    return;
+  }
+
+  data.forEach(t=>{
+
+    const dias = diasDesde(t.ultimaFecha);
+
+    html += `
+
+      <div class="card">
+
+        <div class="titulo">
+          ${t.texto}
+        </div>
+
+        ${
+          t.pendiente
+          ?
+          `
+            <div class="estado amarillo">
+              🟡 PENDIENTE
+            </div>
+          `
+          :
+          `
+            <div class="estado verde">
+              ✅ HECHA
+            </div>
+          `
+        }
+
+        ${
+          t.ultimaFecha
+          ?
+          `
+            <div class="detalle">
+              Última vez: ${t.ultimaFecha}
+            </div>
+
+            <div class="detalle">
+              Realizada por: ${t.ultimoUsuario || "-"}
+            </div>
+
+            <div class="detalle">
+              ${
+                dias === 0
+                ?
+                "Hecha hoy"
+                :
+                "Hace " + dias + " día" + (dias===1 ? "" : "s")
+              }
+            </div>
+          `
+          :
+          `
+            <div class="detalle">
+              Aún no se ha realizado nunca.
+            </div>
+          `
+        }
+
+        ${
+          t.pendiente
+          ?
+          `
+            <button
+              class="hecho"
+              onclick="marcarTarea(${t.id})"
+            >
+              ✅ Marcar hecha
+            </button>
+          `
+          :
+          `
+            <button
+              onclick="volverPendiente(${t.id})"
+            >
+              ↻ Volver a pendiente
+            </button>
+          `
+        }
+
+        ${
+          esHosteleria()
+          ?
+          `
+            <button
+              class="borrar"
+              onclick="borrarTarea(${t.id})"
+            >
+              🗑 Borrar tarea
+            </button>
+          `
+          :
+          ``
+        }
+
+      </div>
+    `;
+  });
+
+  document.getElementById("tareas").innerHTML = html;
+}
+
+function pintar(){
+
+  pintarResumen();
+
+  pintarTareas();
+}
+
+pintar();
+
+</script>
+
+</body>
+</html>

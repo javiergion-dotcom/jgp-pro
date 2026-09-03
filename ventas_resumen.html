@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>RESUMEN VENTAS · MONOLITO</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  font-weight:900;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+  border:0;
+  border-radius:10px;
+  padding:6px 10px;
+  font-weight:900;
+}
+
+.contenedor{
+  padding:16px;
+}
+
+.selector{
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:14px;
+  font-size:16px;
+  border:1px solid #ccc;
+}
+
+.linea{
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-weight:900;
+}
+
+.linea.alerta{
+  border:2px solid #c00000;
+  background:#fff0f0;
+}
+
+.fechaBox{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.avisoCambio{
+  color:#c00000;
+  font-size:12px;
+  font-weight:900;
+}
+
+.total{
+  background:#17303d;
+  color:white;
+  padding:14px;
+  border-radius:14px;
+  font-size:20px;
+  font-weight:900;
+  margin-top:12px;
+}
+
+.media{
+  background:#ffffff;
+  padding:12px;
+  border-radius:12px;
+  font-weight:900;
+  margin-top:10px;
+  text-align:center;
+}
+
+.estado{
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+  font-weight:900;
+  text-align:center;
+}
+
+.flojo{
+  background:#ffe5e5;
+  color:#c00000;
+}
+
+.normal{
+  background:#fff5cc;
+  color:#b38f00;
+}
+
+.fuerte{
+  background:#e5ffe5;
+  color:#1a7f1a;
+}
+
+.vacio{
+  text-align:center;
+  font-weight:900;
+  margin-top:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="window.location.href='ventas.html'">←</button>
+  📊 RESUMEN MES
+</header>
+
+<div class="contenedor">
+
+<input
+  type="month"
+  id="selectorMes"
+  class="selector"
+  onchange="pintar()"
+>
+
+<div id="lista"></div>
+
+<div class="total" id="totalMes">
+  TOTAL: 0 €
+</div>
+
+<div class="media" id="mediaMes"></div>
+
+<div class="estado" id="estadoMes"></div>
+
+</div>
+
+<script>
+
+function euros(n){
+  return Number(n||0)
+    .toFixed(2)
+    .replace(".",",")+" €";
+}
+
+function parseFecha(fechaStr){
+
+  let partes = fechaStr.split("/");
+
+  return new Date(
+    partes[2],
+    partes[1]-1,
+    partes[0]
+  );
+}
+
+function pintar(){
+
+  let data =
+    JSON.parse(localStorage.getItem("ventas") || "{}");
+
+  let valor =
+    document.getElementById("selectorMes").value;
+
+  if(!valor) return;
+
+  let [year, mes] = valor.split("-");
+
+  let yearActual = Number(year);
+
+  mes = Number(mes)-1;
+
+  let totalMes = 0;
+  let dias = 0;
+  let html = "";
+
+  let totalAnioActual = 0;
+  let totalAnioAnterior = 0;
+
+  Object.keys(data).forEach(fecha => {
+
+    let d = parseFecha(fecha);
+
+    let y = d.getFullYear();
+    let m = d.getMonth();
+
+    let registro = data[fecha];
+
+    let total = Number(registro.total || 0);
+
+    let sinCambio =
+      registro.sinCambioPrevio === true;
+
+    if(y === yearActual && m === mes){
+
+      totalMes += total;
+      dias++;
+
+      html += `
+        <div class="linea ${sinCambio ? "alerta" : ""}">
+          <div class="fechaBox">
+            <div>${fecha}</div>
+
+            ${sinCambio
+              ? `<div class="avisoCambio">⚠ SIN CONTROL DE CAMBIO</div>`
+              : ""
+            }
+          </div>
+
+          <div>${euros(total)}</div>
+        </div>
+      `;
+    }
+
+    if(y === yearActual){
+      totalAnioActual += total;
+    }
+
+    if(y === yearActual - 1){
+      totalAnioAnterior += total;
+    }
+
+  });
+
+  if(html === ""){
+    html = `<div class="vacio">No hay datos</div>`;
+  }
+
+  document.getElementById("lista").innerHTML = html;
+
+  document.getElementById("totalMes").textContent =
+    "TOTAL: " + euros(totalMes);
+
+  let media =
+    dias ? totalMes / dias : 0;
+
+  document.getElementById("mediaMes").textContent =
+    "MEDIA DÍA: " + euros(media);
+
+  let totalMesAnterior = 0;
+
+  Object.keys(data).forEach(fecha => {
+
+    let d = parseFecha(fecha);
+
+    if(
+      d.getFullYear() === yearActual - 1 &&
+      d.getMonth() === mes
+    ){
+      totalMesAnterior +=
+        Number(data[fecha].total || 0);
+    }
+
+  });
+
+  let diferenciaMes =
+    totalMes - totalMesAnterior;
+
+  let porcentajeMes =
+    totalMesAnterior > 0
+      ? ((totalMes / totalMesAnterior) * 100).toFixed(1)
+      : 0;
+
+  let porcentajeAnual =
+    totalAnioAnterior > 0
+      ? ((totalAnioActual / totalAnioAnterior) * 100).toFixed(1)
+      : 0;
+
+  let estado =
+    document.getElementById("estadoMes");
+
+  let clase = "normal";
+
+  let titulo =
+    "⚪ MES SIN COMPARATIVA";
+
+  if(totalMesAnterior > 0){
+
+    if(diferenciaMes < 0){
+
+      clase = "flojo";
+
+      titulo =
+        "🔴 POR DEBAJO DEL AÑO ANTERIOR";
+
+    }else if(diferenciaMes > 0){
+
+      clase = "fuerte";
+
+      titulo =
+        "🟢 POR ENCIMA DEL AÑO ANTERIOR";
+
+    }else{
+
+      clase = "normal";
+
+      titulo =
+        "⚪ IGUAL QUE EL AÑO ANTERIOR";
+    }
+  }
+
+  estado.className =
+    "estado " + clase;
+
+  estado.innerHTML = `
+
+    <div>${titulo}</div>
+
+    <div style="margin-top:10px;font-size:15px">
+
+      Mes año anterior:
+      <strong>${euros(totalMesAnterior)}</strong>
+
+      <br><br>
+
+      Mes seleccionado:
+      <strong>${euros(totalMes)}</strong>
+
+      <br><br>
+
+      Diferencia:
+      <strong>${euros(diferenciaMes)}</strong>
+
+      <br><br>
+
+      Porcentaje:
+      <strong>${porcentajeMes}%</strong>
+
+    </div>
+
+    <div style="margin-top:16px;font-size:15px">
+
+      Año anterior completo:
+      <strong>${euros(totalAnioAnterior)}</strong>
+
+      <br><br>
+
+      Año actual acumulado:
+      <strong>${euros(totalAnioActual)}</strong>
+
+      <br><br>
+
+      Llevas el
+      <strong>${porcentajeAnual}%</strong>
+      del año anterior.
+
+    </div>
+  `;
+}
+
+/* INIT */
+
+let hoy = new Date();
+
+let mesActual =
+  hoy.toISOString().slice(0,7);
+
+document.getElementById("selectorMes").value =
+  mesActual;
+
+pintar();
+
+</script>
+
+</body>
+</html>

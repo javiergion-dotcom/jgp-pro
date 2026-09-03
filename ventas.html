@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<title>VENTAS · MONOLITO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:20px 18px;
+  font-weight:900;
+  font-size:28px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+  border:0;
+  border-radius:14px;
+  padding:12px 18px;
+  font-weight:900;
+  font-size:22px;
+}
+
+.mes{
+  margin-left:auto;
+  background:#ff9800;
+  color:white;
+  border:0;
+  border-radius:12px;
+  padding:11px 16px;
+  font-weight:900;
+  font-size:18px;
+}
+
+.contenedor{
+  padding:22px;
+}
+
+.fecha{
+  font-size:24px;
+  font-weight:900;
+  margin-bottom:14px;
+}
+
+input,textarea{
+  width:100%;
+  padding:18px;
+  border-radius:14px;
+  border:1px solid #ccc;
+  margin-bottom:16px;
+  font-size:22px;
+}
+
+textarea{
+  min-height:110px;
+  resize:vertical;
+}
+
+.bloque{
+  padding:22px;
+  border-radius:22px;
+  margin-bottom:18px;
+  box-shadow:0 8px 18px rgba(0,0,0,.10);
+}
+
+.manana{background:linear-gradient(#f7fbff,#eaf5ff)}
+.tarde{background:linear-gradient(#fffaf0,#fff1d6)}
+.totalDia{background:white}
+
+.titulo{
+  font-weight:900;
+  font-size:24px;
+  margin-bottom:14px;
+}
+
+.total{
+  font-size:24px;
+  font-weight:900;
+  margin-top:8px;
+}
+
+.info{
+  font-size:17px;
+  color:#4f5f69;
+  margin-top:12px;
+  font-weight:700;
+}
+
+.aviso{
+  color:#b00000;
+  font-weight:900;
+  font-size:17px;
+  margin-top:10px;
+}
+
+.errorNota{
+  background:#fff8e8;
+  border:1px solid #ffd58a;
+}
+
+.guardar{
+  width:100%;
+  background:#48a530;
+  color:white;
+  border:0;
+  border-radius:16px;
+  padding:20px;
+  font-weight:900;
+  font-size:22px;
+  margin-bottom:18px;
+}
+
+.borrar{
+  width:100%;
+  background:#c00000;
+  color:white;
+  border:0;
+  border-radius:16px;
+  padding:18px;
+  font-weight:900;
+  font-size:20px;
+  margin-top:14px;
+}
+
+.bloqueado{
+  background:#f2f2f2;
+  color:#666;
+}
+
+.modalFondo{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.72);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:22px;
+}
+
+.modal{
+  background:white;
+  border-radius:22px;
+  padding:24px;
+  max-width:520px;
+  width:100%;
+  text-align:center;
+}
+
+.modal h3{
+  margin-top:0;
+  color:#c00000;
+  font-size:26px;
+}
+
+.modal p{
+  line-height:1.5;
+  font-weight:700;
+  font-size:20px;
+}
+
+.irCambio{
+  width:100%;
+  background:#17303d;
+  color:white;
+  border:0;
+  border-radius:14px;
+  padding:17px;
+  font-weight:900;
+  font-size:20px;
+  margin-top:12px;
+}
+
+.continuar{
+  width:100%;
+  background:#c00000;
+  color:white;
+  border:0;
+  border-radius:14px;
+  padding:17px;
+  font-weight:900;
+  font-size:20px;
+  margin-top:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">‹ Volver</button>
+  💰 VENTAS
+  <button class="mes" onclick="verMes()">📊 Mes</button>
+</header>
+
+<div class="contenedor">
+
+  <div class="fecha" id="fechaTexto"></div>
+
+  <input type="date" id="selectorFecha" onchange="cambiarFecha()">
+
+  <div class="bloque manana">
+    <div class="titulo">☀️ MAÑANA</div>
+
+    <input id="maA" placeholder="Operador 1 mañana" type="number" onfocus="this.select()" onclick="this.select()" oninput="calcular()">
+    <input id="maB" placeholder="Operador 2 mañana" type="number" onfocus="this.select()" onclick="this.select()" oninput="calcular()">
+
+    <div class="total" id="totalMa">TOTAL MAÑANA: 0,00 €</div>
+    <div class="aviso" id="avisoMa"></div>
+  </div>
+
+  <div class="bloque tarde">
+    <div class="titulo">🌆 TARDE</div>
+
+    <input id="taA" placeholder="Operador 1 tarde" type="number" onfocus="this.select()" onclick="this.select()" oninput="calcular()">
+    <input id="taB" placeholder="Operador 2 tarde" type="number" onfocus="this.select()" onclick="this.select()" oninput="calcular()">
+
+    <div class="total" id="totalTa">TOTAL TARDE: 0,00 €</div>
+    <div class="aviso" id="avisoTa"></div>
+  </div>
+
+  <div class="bloque totalDia">
+    <div class="titulo">TOTAL DÍA</div>
+    <div class="total" id="totalDia">0,00 €</div>
+    <div class="info" id="infoRegistro"></div>
+  </div>
+
+  <button class="guardar" id="btnGuardar" onclick="intentarGuardarVentas()">💾 GUARDAR VENTAS</button>
+
+  <div class="bloque errorNota">
+    <div class="titulo">⚠ Aviso de error / corrección</div>
+    <textarea id="notaError" placeholder="Si hubo un error, escribe aquí qué pasó. No modifica las ventas registradas." oninput="guardarNotaError()"></textarea>
+    <div class="info" id="infoNota"></div>
+  </div>
+
+  <button class="borrar" id="btnBorrar" onclick="borrarDia()">🗑 Borrar registro del día</button>
+
+</div>
+
+<div class="modalFondo" id="modalCambio">
+  <div class="modal">
+    <h3>⚠ CONTROL DE CAMBIO OBLIGATORIO</h3>
+    <p>
+      Debes realizar el control de cambio antes de registrar ventas.
+      <br><br>
+      Si continúas sin hacerlo, quedará registrado con tu usuario,
+      fecha y hora, y el sistema podrá bloquearse.
+      <br><br>
+      ¿Quieres hacer el control ahora?
+    </p>
+
+    <button class="irCambio" onclick="irACambio()">IR A CAMBIO</button>
+    <button class="continuar" onclick="continuarBajoResponsabilidad()">CONTINUAR BAJO RESPONSABILIDAD</button>
+  </div>
+</div>
+
+<script>
+let fechaActual = hoyISO();
+let cargando = false;
+let guardarSinCambio = false;
+
+function volver(){
+  window.location.href="index.html";
+}
+
+function verMes(){
+  window.location.href="ventas_resumen.html";
+}
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function puedeAdministrar(){
+  const u = usuarioActual().toUpperCase();
+  return u === "JAVI" || u === "JAVIER" || u === "SILVIA";
+}
+
+function hoyISO(){
+  return new Date().toISOString().split("T")[0];
+}
+
+function formatoFechaBonita(fecha){
+  let d = new Date(fecha + "T12:00:00");
+  return d.toLocaleDateString("es-ES",{
+    weekday:"long",
+    day:"numeric",
+    month:"long",
+    year:"numeric"
+  });
+}
+
+function claveFecha(fecha){
+  let d = new Date(fecha + "T12:00:00");
+  return d.toLocaleDateString("es-ES");
+}
+
+function numero(v){
+  return Number(v || 0);
+}
+
+function euros(n){
+  return Number(n || 0).toFixed(2).replace(".",",") + " €";
+}
+
+function maAInput(){return document.getElementById("maA")}
+function maBInput(){return document.getElementById("maB")}
+function taAInput(){return document.getElementById("taA")}
+function taBInput(){return document.getElementById("taB")}
+
+document.getElementById("selectorFecha").value = fechaActual;
+actualizarFechaTexto();
+cargar();
+
+function cambiarFecha(){
+  fechaActual = document.getElementById("selectorFecha").value;
+  guardarSinCambio = false;
+  actualizarFechaTexto();
+  cargar();
+}
+
+function actualizarFechaTexto(){
+  document.getElementById("fechaTexto").textContent =
+    "📅 " + formatoFechaBonita(fechaActual);
+}
+
+function calcular(){
+  if(cargando) return;
+
+  let maA = numero(maAInput().value);
+  let maB = numero(maBInput().value);
+  let taA = numero(taAInput().value);
+  let taB = numero(taBInput().value);
+
+  let totalMa = maA + maB;
+  let totalTa = taA + taB;
+  let totalDia = totalMa + totalTa;
+
+  document.getElementById("totalMa").textContent = "TOTAL MAÑANA: " + euros(totalMa);
+  document.getElementById("totalTa").textContent = "TOTAL TARDE: " + euros(totalTa);
+  document.getElementById("totalDia").textContent = euros(totalDia);
+
+  pintarAvisos(maA,maB,taA,taB);
+}
+
+function pintarAvisos(maA,maB,taA,taB){
+  document.getElementById("avisoMa").textContent =
+    ((maA === 0 && maB > 0) || (maA > 0 && maB === 0))
+      ? "⚠ Revisa si falta cubrir una de las ventas de mañana."
+      : "";
+
+  document.getElementById("avisoTa").textContent =
+    ((taA === 0 && taB > 0) || (taA > 0 && taB === 0))
+      ? "⚠ Revisa si falta cubrir una de las ventas de tarde."
+      : "";
+}
+
+function hayCambioDelDia(){
+  let cambio = JSON.parse(localStorage.getItem("cambio") || "{}");
+  return !!cambio[claveFecha(fechaActual)];
+}
+
+function intentarGuardarVentas(){
+  if(!hayCambioDelDia() && !guardarSinCambio){
+    document.getElementById("modalCambio").style.display = "flex";
+    return;
+  }
+
+  guardarVentas();
+}
+
+function irACambio(){
+  window.location.href = "cambio.html";
+}
+
+function continuarBajoResponsabilidad(){
+  guardarSinCambio = true;
+  document.getElementById("modalCambio").style.display = "none";
+  guardarVentas();
+}
+
+function guardarVentas(){
+  let maA = numero(maAInput().value);
+  let maB = numero(maBInput().value);
+  let taA = numero(taAInput().value);
+  let taB = numero(taBInput().value);
+
+  let totalMa = maA + maB;
+  let totalTa = taA + taB;
+  let totalDia = totalMa + totalTa;
+
+  if(totalDia <= 0){
+    alert("No hay ventas para guardar.");
+    return;
+  }
+
+  let data = JSON.parse(localStorage.getItem("ventas") || "{}");
+  let operador = usuarioActual();
+  let ahora = new Date();
+  let clave = claveFecha(fechaActual);
+  let anterior = data[clave] || {};
+
+  data[clave] = {
+    operador: anterior.operador || operador,
+    hora: anterior.hora || ahora.toLocaleTimeString("es-ES"),
+    fechaRegistro: anterior.fechaRegistro || ahora.toLocaleDateString("es-ES"),
+
+    mañanaA: maA,
+    mañanaB: maB,
+    tardeA: taA,
+    tardeB: taB,
+
+    mañana: totalMa,
+    tarde: totalTa,
+    total: totalDia,
+
+    sinCambioPrevio: !hayCambioDelDia(),
+    sinCambioUsuario: !hayCambioDelDia() ? operador : (anterior.sinCambioUsuario || ""),
+    sinCambioHora: !hayCambioDelDia() ? ahora.toLocaleTimeString("es-ES") : (anterior.sinCambioHora || ""),
+
+    notaError: anterior.notaError || "",
+    notaPor: anterior.notaPor || "",
+    notaHora: anterior.notaHora || ""
+  };
+
+  localStorage.setItem("ventas", JSON.stringify(data));
+
+  document.getElementById("infoRegistro").textContent =
+    "Guardado por " +
+    data[clave].operador +
+    " · " +
+    data[clave].hora +
+    (data[clave].sinCambioPrevio ? " · ⚠ SIN CONTROL DE CAMBIO" : "");
+
+  aplicarBloqueo();
+
+  alert("Ventas guardadas.");
+}
+
+function cargar(){
+  cargando = true;
+
+  let data = JSON.parse(localStorage.getItem("ventas") || "{}");
+  let d = data[claveFecha(fechaActual)];
+
+  maAInput().value = "";
+  maBInput().value = "";
+  taAInput().value = "";
+  taBInput().value = "";
+
+  document.getElementById("notaError").value = "";
+  document.getElementById("infoNota").textContent = "";
+  document.getElementById("infoRegistro").textContent = "";
+
+  if(d){
+    maAInput().value = d.mañanaA || "";
+    maBInput().value = d.mañanaB || "";
+    taAInput().value = d.tardeA || "";
+    taBInput().value = d.tardeB || "";
+
+    document.getElementById("notaError").value = d.notaError || "";
+
+    document.getElementById("infoRegistro").textContent =
+      "Último registro: " +
+      (d.operador || "OPERADOR") +
+      " · " +
+      (d.hora || "") +
+      (d.sinCambioPrevio ? " · ⚠ SIN CONTROL DE CAMBIO" : "");
+
+    if(d.notaError){
+      document.getElementById("infoNota").textContent =
+        "Nota registrada por " +
+        (d.notaPor || "OPERADOR") +
+        " · " +
+        (d.notaHora || "");
+    }
+  }
+
+  cargando = false;
+  calcular();
+  aplicarBloqueo();
+}
+
+function aplicarBloqueo(){
+  let data = JSON.parse(localStorage.getItem("ventas") || "{}");
+  let existe = !!data[claveFecha(fechaActual)];
+  let admin = puedeAdministrar();
+
+  [maAInput(),maBInput(),taAInput(),taBInput()].forEach(input=>{
+    input.disabled = existe && !admin;
+    input.classList.toggle("bloqueado", existe && !admin);
+  });
+
+  document.getElementById("btnGuardar").style.display =
+    existe && !admin ? "none" : "block";
+
+  document.getElementById("btnBorrar").style.display =
+    admin ? "block" : "none";
+}
+
+function guardarNotaError(){
+  let texto = document.getElementById("notaError").value.trim();
+  let data = JSON.parse(localStorage.getItem("ventas") || "{}");
+  let clave = claveFecha(fechaActual);
+
+  if(!data[clave]){
+    document.getElementById("infoNota").textContent =
+      texto ? "Nota pendiente: guarda ventas para dejarla asociada al día." : "";
+    return;
+  }
+
+  data[clave].notaError = texto;
+  data[clave].notaPor = usuarioActual();
+  data[clave].notaHora = new Date().toLocaleTimeString("es-ES");
+
+  localStorage.setItem("ventas", JSON.stringify(data));
+
+  document.getElementById("infoNota").textContent =
+    texto
+      ? "Nota registrada por " + data[clave].notaPor + " · " + data[clave].notaHora
+      : "";
+}
+
+function borrarDia(){
+  if(!puedeAdministrar()){
+    alert("Solo Javi o Silvia pueden borrar.");
+    return;
+  }
+
+  if(!confirm("¿Borrar las ventas de este día?")) return;
+
+  let data = JSON.parse(localStorage.getItem("ventas") || "{}");
+  delete data[claveFecha(fechaActual)];
+
+  localStorage.setItem("ventas", JSON.stringify(data));
+
+  guardarSinCambio = false;
+  cargar();
+}
+</script>
+
+</body>
+</html>

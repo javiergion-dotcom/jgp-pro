@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONFIGURACIÓN · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}
+.volver{background:white;color:#17303d;border:0;border-radius:12px;padding:8px 12px;font-weight:900}
+.contenido{padding:16px}
+.card{background:white;border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 8px 18px rgba(0,0,0,.12)}
+.titulo{font-size:22px;font-weight:900;margin-bottom:10px}
+label{display:block;font-weight:900;margin-top:12px;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border-radius:14px;border:1px solid #b8c2ca;font-size:16px}
+textarea{min-height:80px}
+button{border:0;border-radius:14px;padding:12px;font-weight:900;font-size:15px}
+.guardar{width:100%;background:#48a530;color:white;margin-top:14px}
+.nuevo{width:100%;background:#ff9800;color:white;margin-top:10px}
+.borrar{width:100%;background:#c00000;color:white;margin-top:10px}
+.editar{background:#2196f3;color:white}
+.desactivar{background:#ff9800;color:white}
+.reactivar{background:#48a530;color:white}
+.linea{border-top:1px solid #dfe6ec;padding-top:12px;margin-top:12px}
+.nombre{font-size:18px;font-weight:900}
+.detalle{color:#4f5f69;margin-top:5px;font-size:14px}
+.botones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.botones button{flex:1}
+.inactivo{opacity:.45}
+.aviso{background:#fff3cd;color:#7a4d00;border-radius:14px;padding:12px;font-weight:900;margin-top:10px}
+.rojoAviso{background:#ffe0e0;color:#c00000;border-radius:14px;padding:12px;font-weight:900;margin-top:10px}
+.vacio{background:#eef2f5;border-radius:18px;padding:16px;text-align:center;font-weight:900;margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<script>
+const sesionProteccion = JSON.parse(localStorage.getItem("sesion_monolito") || "{}");
+
+const usuarioProteccion = String(
+  localStorage.getItem("usuario") ||
+  sesionProteccion.usuario ||
+  sesionProteccion.nombre ||
+  ""
+).trim().toUpperCase();
+
+const nivelProteccion = String(
+  localStorage.getItem("nivel") ||
+  sesionProteccion.nivel ||
+  ""
+).trim().toUpperCase();
+
+const rolProteccion = String(
+  localStorage.getItem("rol") ||
+  sesionProteccion.rol ||
+  ""
+).trim().toUpperCase();
+
+const autorizadoProteccion =
+  usuarioProteccion.includes("JAVI") ||
+  usuarioProteccion.includes("JAVIER") ||
+  usuarioProteccion.includes("SILVIA") ||
+  nivelProteccion === "HOSTELERIA" ||
+  rolProteccion === "ADMIN";
+
+if(!autorizadoProteccion){
+  const pinRescate = prompt("Acceso configuración. PIN administrador:");
+
+  if(pinRescate !== "0000"){
+    alert("⚠ ACCESO NO PERMITIDO");
+    window.location.href = "index.html";
+  }else{
+    localStorage.setItem("usuario","JAVIER");
+    localStorage.setItem("nivel","HOSTELERIA");
+    localStorage.setItem("rol","ADMIN");
+  }
+}
+</script>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  ⚙️ CONFIGURACIÓN
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+    <div class="titulo">Usuarios</div>
+
+    <div class="aviso" id="estadoCloud">Comprobando cloud...</div>
+
+    <label>Nombre usuario</label>
+    <input id="usuarioNombre" placeholder="Ej: SILVIA">
+
+    <label>PIN</label>
+    <input id="usuarioPin" type="number" placeholder="Ej: 1234">
+
+    <label>Nivel</label>
+    <select id="usuarioNivel">
+      <option value="HOSTELERIA">HOSTELERÍA</option>
+      <option value="OPERADOR">OPERADOR</option>
+      <option value="DEMO">DEMO</option>
+    </select>
+
+    <label>Rol</label>
+    <select id="usuarioRol">
+      <option value="ADMIN">ADMIN</option>
+      <option value="OPERADOR">OPERADOR</option>
+      <option value="DEMO">DEMO</option>
+    </select>
+
+    <button class="guardar" onclick="guardarUsuario()">💾 Guardar usuario</button>
+
+    <div id="listaUsuarios"></div>
+  </div>
+
+  <div class="card">
+    <div class="titulo">Promociones</div>
+
+    <label>Proveedor</label>
+    <input id="promoProveedor" placeholder="Ej: TURRADO">
+
+    <label>Promoción</label>
+    <input id="promoNombre" placeholder="Ej: MAHOU 5 + 2">
+
+    <label>% descuento</label>
+    <input id="promoDescuento" type="number" step="0.01">
+
+    <label>Unidades con cargo</label>
+    <input id="promoCargo" type="number" step="1">
+
+    <label>Unidades coste 0 €</label>
+    <input id="promoGratis" type="number" step="1">
+
+    <label>Fecha inicio</label>
+    <input id="promoInicio" type="date">
+
+    <label>Fecha fin</label>
+    <input id="promoFin" type="date">
+
+    <label>Nota</label>
+    <textarea id="promoNota"></textarea>
+
+    <button class="guardar" onclick="guardarPromocion()">💾 Guardar promoción</button>
+    <button class="nuevo" onclick="limpiarPromocion()">➕ Nueva promoción</button>
+
+    <div class="aviso">PEDIDOS leerá automáticamente las promociones activas.</div>
+
+    <div id="listaPromociones"></div>
+  </div>
+
+  <div class="card">
+    <div class="titulo">Control pedidos</div>
+
+    <label>Activar “Cuántas hay”</label>
+    <select id="activarCuantasHay">
+      <option value="SI">SI</option>
+      <option value="NO">NO</option>
+    </select>
+
+    <label>Activar “Cuántas pido”</label>
+    <select id="activarCuantasPido">
+      <option value="SI">SI</option>
+      <option value="NO">NO</option>
+    </select>
+
+    <label>Frecuencia control stock</label>
+    <select id="frecuenciaControl">
+      <option value="SIEMPRE">SIEMPRE</option>
+      <option value="SEMANAL">SEMANAL</option>
+      <option value="MENSUAL">MENSUAL</option>
+      <option value="PERSONALIZADO">PERSONALIZADO</option>
+    </select>
+
+    <label>Cada cuántos pedidos</label>
+    <input type="number" id="cadaPedidos" placeholder="Ej: 4">
+
+    <button class="guardar" onclick="guardarControlPedidos()">💾 Guardar control pedidos</button>
+  </div>
+
+  <div class="card">
+    <div class="titulo">Sistema</div>
+
+    <div class="rojoAviso">Zona delicada. Solo usar para limpiar pruebas.</div>
+
+    <button class="borrar" onclick="borrarCalendario()">Borrar calendario</button>
+    <button class="borrar" onclick="borrarDocumentos()">Borrar documentos</button>
+    <button class="borrar" onclick="borrarPagos()">Borrar pagos pendientes</button>
+    <button class="borrar" onclick="borrarHistoricoPedidos()">Borrar histórico pagos</button>
+    <button class="borrar" onclick="borrarIncidencias()">Borrar incidencias</button>
+  </div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "PEGA_AQUI_TU_API_KEY_REAL",
+  authDomain: "monolito-ed87d.firebaseapp.com",
+  projectId: "monolito-ed87d",
+  storageBucket: "monolito-ed87d.appspot.com",
+  messagingSenderId: "737849584362",
+  appId: "1:737849584362:web:3d1821bedcd64080cf8593",
+  measurementId: "G-7XCZ0VN7ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let editandoUsuario = "";
+let editandoPromo = "";
+let usuariosCloud = [];
+
+window.volver = function(){
+  window.location.href = "index.html";
+};
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function normalizar(t){
+  return String(t || "").trim().toUpperCase();
+}
+
+function idUsuario(nombre){
+  return normalizar(nombre).replaceAll(" ","_");
+}
+
+/* ================= USUARIOS ================= */
+
+async function leerUsuariosCloud(){
+  try{
+    const snap = await getDocs(collection(db,"usuarios"));
+    let data = [];
+
+    snap.forEach(d=>{
+      const u = d.data();
+
+      data.push({
+        id:d.id,
+        nombre:String(u.nombre || "").trim().toUpperCase(),
+        pin:String(u.pin || "").trim(),
+        nivel:String(u.nivel || "OPERADOR").trim().toUpperCase(),
+        rol:String(u.rol || "OPERADOR").trim().toUpperCase(),
+        activo:u.activo !== false,
+        fijo:u.fijo === true,
+        actualizado:u.actualizado || "",
+        actualizadoPor:u.actualizadoPor || ""
+      });
+    });
+
+    usuariosCloud = data;
+    localStorage.setItem("usuarios_monolito", JSON.stringify(data));
+
+    document.getElementById("estadoCloud").textContent =
+      "✅ Usuarios sincronizados con cloud · " + data.length;
+
+    return data;
+
+  }catch(e){
+    console.error(e);
+
+    document.getElementById("estadoCloud").textContent =
+      "⚠️ Cloud no disponible. Usando copia local.";
+
+    usuariosCloud = JSON.parse(localStorage.getItem("usuarios_monolito") || "[]");
+
+    return usuariosCloud;
+  }
+}
+
+window.guardarUsuario = async function(){
+  const nombre = normalizar(document.getElementById("usuarioNombre").value);
+  const pin = String(document.getElementById("usuarioPin").value || "").trim();
+  const nivel = document.getElementById("usuarioNivel").value;
+  const rol = document.getElementById("usuarioRol").value;
+
+  if(!nombre){
+    alert("Falta el nombre.");
+    return;
+  }
+
+  if(!pin){
+    alert("Falta el PIN.");
+    return;
+  }
+
+  const anterior =
+    editandoUsuario !== ""
+    ? usuariosCloud[Number(editandoUsuario)] || {}
+    : {};
+
+  const registro = {
+    nombre,
+    pin,
+    nivel,
+    rol,
+    activo: anterior.activo !== false,
+    fijo: anterior.fijo === true,
+    actualizadoPor: usuarioActual(),
+    actualizado: new Date().toLocaleString("es-ES")
+  };
+
+  try{
+    await setDoc(doc(db,"usuarios",idUsuario(nombre)),registro);
+    alert("Usuario guardado en cloud.");
+  }catch(e){
+    console.error(e);
+    alert("No se pudo guardar en cloud.");
+    return;
+  }
+
+  limpiarUsuario();
+  await pintarUsuarios();
+};
+
+function limpiarUsuario(){
+  editandoUsuario = "";
+  document.getElementById("usuarioNombre").value = "";
+  document.getElementById("usuarioPin").value = "";
+  document.getElementById("usuarioNivel").value = "OPERADOR";
+  document.getElementById("usuarioRol").value = "OPERADOR";
+}
+
+window.editarUsuario = function(i){
+  const u = usuariosCloud[i];
+
+  editandoUsuario = i;
+
+  document.getElementById("usuarioNombre").value = u.nombre || "";
+  document.getElementById("usuarioPin").value = u.pin || "";
+  document.getElementById("usuarioNivel").value = u.nivel || "OPERADOR";
+  document.getElementById("usuarioRol").value = u.rol || "OPERADOR";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+
+window.toggleUsuario = async function(i){
+  const u = usuariosCloud[i];
+  if(!u) return;
+
+  try{
+    await setDoc(doc(db,"usuarios",idUsuario(u.nombre)),{
+      ...u,
+      activo:u.activo === false ? true : false,
+      actualizado:new Date().toLocaleString("es-ES"),
+      actualizadoPor:usuarioActual()
+    });
+
+    await pintarUsuarios();
+
+  }catch(e){
+    console.error(e);
+    alert("No se pudo cambiar el estado.");
+  }
+};
+
+window.eliminarUsuario = async function(i){
+  const u = usuariosCloud[i];
+  if(!u) return;
+
+  if(u.fijo){
+    alert("Este usuario base no se elimina.");
+    return;
+  }
+
+  if(!confirm("¿Eliminar por completo a " + u.nombre + "?")) return;
+
+  try{
+    await deleteDoc(doc(db,"usuarios",idUsuario(u.nombre)));
+    await pintarUsuarios();
+  }catch(e){
+    console.error(e);
+    alert("No se pudo eliminar.");
+  }
+};
+
+async function pintarUsuarios(){
+  const data = await leerUsuariosCloud();
+  let html = "";
+
+  if(data.length === 0){
+    html = `<div class="vacio">No hay usuarios.</div>`;
+  }
+
+  data.forEach((u,i)=>{
+    html += `
+      <div class="linea ${u.activo === false ? "inactivo" : ""}">
+        <div class="nombre">${u.nombre}</div>
+        <div class="detalle">PIN: ${u.pin ? "••••" : "-"}</div>
+        <div class="detalle">Nivel: <strong>${u.nivel}</strong> · Rol: <strong>${u.rol}</strong></div>
+        <div class="detalle">Estado: <strong>${u.activo === false ? "INACTIVO" : "ACTIVO"}</strong></div>
+        <div class="detalle">Actualizado: ${u.actualizado || "-"}</div>
+
+        <div class="botones">
+          <button class="editar" onclick="editarUsuario(${i})">Editar</button>
+          <button class="${u.activo === false ? "reactivar" : "desactivar"}" onclick="toggleUsuario(${i})">
+            ${u.activo === false ? "Activar" : "Desactivar"}
+          </button>
+          ${u.fijo ? "" : `<button class="borrar" onclick="eliminarUsuario(${i})">Eliminar</button>`}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("listaUsuarios").innerHTML = html;
+}
+
+/* ================= PROMOCIONES ================= */
+
+function leerPromociones(){
+  return JSON.parse(localStorage.getItem("promociones_monolito") || "[]");
+}
+
+function guardarPromociones(data){
+  localStorage.setItem("promociones_monolito", JSON.stringify(data));
+}
+
+window.limpiarPromocion = function(){
+  editandoPromo = "";
+  document.getElementById("promoProveedor").value = "";
+  document.getElementById("promoNombre").value = "";
+  document.getElementById("promoDescuento").value = "";
+  document.getElementById("promoCargo").value = "";
+  document.getElementById("promoGratis").value = "";
+  document.getElementById("promoInicio").value = "";
+  document.getElementById("promoFin").value = "";
+  document.getElementById("promoNota").value = "";
+};
+
+window.guardarPromocion = function(){
+  const proveedor = normalizar(document.getElementById("promoProveedor").value);
+  const nombre = document.getElementById("promoNombre").value.trim().toUpperCase();
+
+  if(!proveedor){
+    alert("Falta proveedor.");
+    return;
+  }
+
+  if(!nombre){
+    alert("Falta promoción.");
+    return;
+  }
+
+  let data = leerPromociones();
+  let idx = editandoPromo !== "" ? Number(editandoPromo) : -1;
+  const anterior = idx >= 0 ? data[idx] : {};
+
+  const registro = {
+    id: anterior.id || Date.now(),
+    proveedor,
+    nombre,
+    descuento:Number(document.getElementById("promoDescuento").value || 0),
+    cargo:Number(document.getElementById("promoCargo").value || 0),
+    gratis:Number(document.getElementById("promoGratis").value || 0),
+    inicio:document.getElementById("promoInicio").value,
+    fin:document.getElementById("promoFin").value,
+    nota:document.getElementById("promoNota").value.trim(),
+    activa:anterior.activa !== false,
+    actualizadoPor:usuarioActual(),
+    actualizado:new Date().toLocaleString("es-ES")
+  };
+
+  if(idx >= 0){
+    data[idx] = registro;
+  }else{
+    data.unshift(registro);
+  }
+
+  guardarPromociones(data);
+  limpiarPromocion();
+  pintarPromociones();
+};
+
+window.editarPromocion = function(i){
+  const p = leerPromociones()[i];
+
+  editandoPromo = i;
+
+  document.getElementById("promoProveedor").value = p.proveedor || "";
+  document.getElementById("promoNombre").value = p.nombre || "";
+  document.getElementById("promoDescuento").value = p.descuento || "";
+  document.getElementById("promoCargo").value = p.cargo || "";
+  document.getElementById("promoGratis").value = p.gratis || "";
+  document.getElementById("promoInicio").value = p.inicio || "";
+  document.getElementById("promoFin").value = p.fin || "";
+  document.getElementById("promoNota").value = p.nota || "";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+
+window.togglePromocion = function(i){
+  let data = leerPromociones();
+  data[i].activa = data[i].activa === false ? true : false;
+  guardarPromociones(data);
+  pintarPromociones();
+};
+
+window.borrarPromocion = function(i){
+  if(!confirm("¿Borrar esta promoción?")) return;
+  let data = leerPromociones();
+  data.splice(i,1);
+  guardarPromociones(data);
+  pintarPromociones();
+};
+
+function pintarPromociones(){
+  const data = leerPromociones();
+  let html = "";
+
+  if(data.length === 0){
+    html = `<div class="vacio">No hay promociones guardadas.</div>`;
+  }
+
+  data.forEach((p,i)=>{
+    html += `
+      <div class="linea ${p.activa === false ? "inactivo" : ""}">
+        <div class="nombre">${p.nombre}</div>
+        <div class="detalle">Proveedor: <strong>${p.proveedor}</strong></div>
+        <div class="detalle">% descuento: ${Number(p.descuento || 0).toFixed(2).replace(".",",")}%</div>
+        <div class="detalle">${p.cargo || 0} con cargo · ${p.gratis || 0} coste 0 €</div>
+        <div class="detalle">Inicio: ${p.inicio || "-"} · Fin: ${p.fin || "-"}</div>
+        ${p.nota ? `<div class="detalle">Nota: ${p.nota}</div>` : ""}
+        <div class="detalle">Estado: <strong>${p.activa === false ? "INACTIVA" : "ACTIVA"}</strong></div>
+
+        <div class="botones">
+          <button class="editar" onclick="editarPromocion(${i})">Editar</button>
+          <button class="${p.activa === false ? "reactivar" : "desactivar"}" onclick="togglePromocion(${i})">
+            ${p.activa === false ? "Activar" : "Desactivar"}
+          </button>
+          <button class="borrar" onclick="borrarPromocion(${i})">Borrar</button>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById("listaPromociones").innerHTML = html;
+}
+
+/* ================= CONTROL PEDIDOS ================= */
+
+function leerControlPedidos(){
+  return JSON.parse(
+    localStorage.getItem("control_pedidos_monolito") ||
+    JSON.stringify({
+      activarCuantasHay:"SI",
+      activarCuantasPido:"SI",
+      frecuencia:"SIEMPRE",
+      cadaPedidos:4
+    })
+  );
+}
+
+window.guardarControlPedidos = function(){
+  const data = {
+    activarCuantasHay:document.getElementById("activarCuantasHay").value,
+    activarCuantasPido:document.getElementById("activarCuantasPido").value,
+    frecuencia:document.getElementById("frecuenciaControl").value,
+    cadaPedidos:Number(document.getElementById("cadaPedidos").value || 0)
+  };
+
+  localStorage.setItem("control_pedidos_monolito", JSON.stringify(data));
+
+  alert("Configuración pedidos guardada.");
+};
+
+function pintarControlPedidos(){
+  const data = leerControlPedidos();
+
+  document.getElementById("activarCuantasHay").value = data.activarCuantasHay || "SI";
+  document.getElementById("activarCuantasPido").value = data.activarCuantasPido || "SI";
+  document.getElementById("frecuenciaControl").value = data.frecuencia || "SIEMPRE";
+  document.getElementById("cadaPedidos").value = data.cadaPedidos || 4;
+}
+
+/* ================= SISTEMA ================= */
+
+function confirmarTexto(texto){
+  return prompt(texto + "\n\nEscribe BORRAR para confirmar:") === "BORRAR";
+}
+
+function borrarClave(clave,nombre){
+  if(!confirmarTexto("Vas a borrar " + nombre + ".")) return;
+  localStorage.removeItem(clave);
+  alert(nombre + " borrado.");
+}
+
+window.borrarCalendario = function(){
+  borrarClave("calendario","calendario");
+};
+
+window.borrarDocumentos = function(){
+  borrarClave("documentos_monolito","documentos");
+};
+
+window.borrarPagos = function(){
+  borrarClave("pagos_pendientes","pagos pendientes");
+};
+
+window.borrarHistoricoPedidos = function(){
+  borrarClave("pagos_historico","histórico pagos");
+};
+
+window.borrarIncidencias = function(){
+  borrarClave("incidencias","incidencias");
+};
+
+/* ================= START ================= */
+
+async function iniciar(){
+  await pintarUsuarios();
+  pintarPromociones();
+  pintarControlPedidos();
+}
+
+iniciar();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<title>LOGIN · MONOLITO & IA PRO</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#dfe6ec;
+  color:#17303d;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.card{
+  width:100%;
+  max-width:430px;
+  background:white;
+  border-radius:28px;
+  padding:26px;
+  box-shadow:0 18px 36px rgba(0,0,0,.25);
+}
+
+.logo{
+  text-align:center;
+  font-size:30px;
+  font-weight:900;
+  margin-bottom:2px;
+  color:#17303d;
+}
+
+.logo span{
+  color:#d4af37;
+}
+
+.sub{
+  text-align:center;
+  color:#4f5f69;
+  font-weight:800;
+  margin-bottom:22px;
+  font-size:14px;
+}
+
+input{
+  width:100%;
+  padding:18px;
+  border-radius:18px;
+  border:1px solid #b8c2ca;
+  font-size:26px;
+  text-align:center;
+  letter-spacing:6px;
+  font-weight:900;
+  background:#f8fafc;
+}
+
+.teclado{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-top:18px;
+}
+
+button{
+  border:0;
+  border-radius:18px;
+  padding:18px;
+  font-size:22px;
+  font-weight:900;
+  background:#17303d;
+  color:white;
+  box-shadow:0 8px 16px rgba(0,0,0,.18);
+  cursor:pointer;
+}
+
+button:active{
+  transform:translateY(4px) scale(.97);
+}
+
+.borrar{
+  background:#c00000;
+}
+
+.entrar{
+  background:#48a530;
+}
+
+.error{
+  margin-top:14px;
+  color:#c00000;
+  text-align:center;
+  font-weight:900;
+  min-height:20px;
+  font-size:15px;
+}
+
+.aviso{
+  margin-top:18px;
+  background:#eef2f5;
+  border-radius:16px;
+  padding:13px;
+  text-align:center;
+  font-weight:800;
+  color:#4f5f69;
+  font-size:13px;
+}
+
+.version{
+  margin-top:12px;
+  text-align:center;
+  font-size:11px;
+  color:#74848d;
+  font-weight:700;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="logo">
+    MONOLITO <span>& IA PRO</span>
+  </div>
+
+  <div class="sub">
+    Acceso por PIN · Sistema de Control
+  </div>
+
+  <input
+    id="pin"
+    type="password"
+    maxlength="8"
+    readonly
+    placeholder="PIN"
+  >
+
+  <div class="teclado">
+
+    <button onclick="num('1')">1</button>
+    <button onclick="num('2')">2</button>
+    <button onclick="num('3')">3</button>
+
+    <button onclick="num('4')">4</button>
+    <button onclick="num('5')">5</button>
+    <button onclick="num('6')">6</button>
+
+    <button onclick="num('7')">7</button>
+    <button onclick="num('8')">8</button>
+    <button onclick="num('9')">9</button>
+
+    <button class="borrar" onclick="limpiar()">
+      C
+    </button>
+
+    <button onclick="num('0')">0</button>
+
+    <button class="entrar" onclick="entrar()">
+      OK
+    </button>
+
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="aviso">
+    El PIN identifica al usuario y su nivel de autoridad.
+  </div>
+
+  <div class="version" id="version"></div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  getDocs
+}
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+/* ================= VERSION ================= */
+
+const VERSION_MONOLITO =
+  "2026.05.31.LOGIN.FIX.PERMISOS.001";
+
+/* ================= FIREBASE ================= */
+
+const firebaseConfig = {
+
+  apiKey: "PEGA_AQUI_TU_API_KEY_REAL",
+
+  authDomain:
+    "monolito-ed87d.firebaseapp.com",
+
+  projectId:
+    "monolito-ed87d",
+
+  storageBucket:
+    "monolito-ed87d.appspot.com",
+
+  messagingSenderId:
+    "737849584362",
+
+  appId:
+    "1:737849584362:web:3d1821bedcd64080cf8593",
+
+  measurementId:
+    "G-7XCZ0VN7ID"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+
+/* ================= TECLADO ================= */
+
+window.num = function(n){
+
+  const p =
+    document.getElementById("pin");
+
+  if(p.value.length >= 8) return;
+
+  p.value += n;
+
+  document.getElementById("error").textContent = "";
+};
+
+window.limpiar = function(){
+
+  document.getElementById("pin").value = "";
+
+  document.getElementById("error").textContent = "";
+};
+
+/* ================= USUARIOS EMERGENCIA ================= */
+
+function usuariosEmergencia(){
+
+  return [
+
+    {
+      nombre:"JAVIER",
+      pin:"0000",
+      nivel:"HOSTELERIA",
+      rol:"ADMIN",
+      activo:true
+    },
+
+    {
+      nombre:"SILVIA",
+      pin:"0000",
+      nivel:"HOSTELERIA",
+      rol:"ADMIN",
+      activo:true
+    },
+
+    {
+      nombre:"DEMO",
+      pin:"1111",
+      nivel:"DEMO",
+      rol:"DEMO",
+      activo:true
+    }
+  ];
+}
+
+/* ================= CLOUD ================= */
+
+async function leerUsuariosCloud(){
+
+  try{
+
+    const querySnapshot =
+      await getDocs(collection(db, "usuarios"));
+
+    let lista = [];
+
+    querySnapshot.forEach((doc)=>{
+
+      const d = doc.data();
+
+      lista.push({
+
+        nombre:
+          String(
+            d.nombre ||
+            d.Nombre ||
+            ""
+          ).trim().toUpperCase(),
+
+        pin:
+          String(
+            d.pin ||
+            d.Pin ||
+            ""
+          ).trim(),
+
+        nivel:
+          String(
+            d.nivel ||
+            d.Nivel ||
+            "OPERADOR"
+          ).trim().toUpperCase(),
+
+        rol:
+          String(
+            d.rol ||
+            d.Rol ||
+            "OPERADOR"
+          ).trim().toUpperCase(),
+
+        activo:
+          d.activo !== false
+      });
+    });
+
+    lista = lista.filter(u =>
+      u.nombre &&
+      u.pin &&
+      u.activo !== false
+    );
+
+    if(lista.length > 0){
+
+      localStorage.setItem(
+        "usuarios_monolito",
+        JSON.stringify(lista)
+      );
+
+      localStorage.setItem(
+        "usuarios_origen",
+        "CLOUD"
+      );
+
+      return lista;
+    }
+
+  }catch(e){
+
+    console.error("Cloud:", e);
+  }
+
+  return null;
+}
+
+/* ================= LOCAL ================= */
+
+function leerUsuariosLocales(){
+
+  let usuarios = [];
+
+  try{
+
+    usuarios = JSON.parse(
+      localStorage.getItem("usuarios_monolito") || "[]"
+    );
+
+  }catch(e){
+
+    usuarios = [];
+  }
+
+  if(!Array.isArray(usuarios) || usuarios.length === 0){
+
+    usuarios = usuariosEmergencia();
+
+    localStorage.setItem(
+      "usuarios_monolito",
+      JSON.stringify(usuarios)
+    );
+  }
+
+  localStorage.setItem(
+    "usuarios_origen",
+    "LOCAL"
+  );
+
+  return usuarios.filter(u =>
+    u &&
+    u.pin &&
+    u.activo !== false
+  );
+}
+
+/* ================= OBTENER USUARIOS ================= */
+
+async function obtenerUsuarios(){
+
+  const cloud =
+    await leerUsuariosCloud();
+
+  if(cloud && cloud.length){
+
+    return cloud;
+  }
+
+  return leerUsuariosLocales();
+}
+
+/* ================= GUARDAR SESION ================= */
+
+function guardarSesion(usuario){
+
+  const nivel =
+    String(
+      usuario.nivel || "OPERADOR"
+    ).trim().toUpperCase();
+
+  const rol =
+    String(
+      usuario.rol || nivel
+    ).trim().toUpperCase();
+
+  localStorage.setItem(
+    "usuario",
+    usuario.nombre
+  );
+
+  localStorage.setItem(
+    "nivel",
+    nivel
+  );
+
+  localStorage.setItem(
+    "rol",
+    rol
+  );
+
+  localStorage.setItem(
+    "loginActivo",
+    "SI"
+  );
+
+  localStorage.setItem(
+    "ultimoLogin",
+    new Date().toLocaleString("es-ES")
+  );
+
+  localStorage.setItem(
+    "version_monolito",
+    VERSION_MONOLITO
+  );
+
+  localStorage.setItem(
+    "sesion_monolito",
+
+    JSON.stringify({
+
+      usuario:usuario.nombre,
+      nivel:nivel,
+      rol:rol,
+      loginActivo:"SI",
+      fechaLogin:new Date().toISOString()
+    })
+  );
+}
+
+/* ================= LOGIN ================= */
+
+window.entrar = async function(){
+
+  const pinInput =
+    document.getElementById("pin")
+    .value
+    .trim();
+
+  if(!pinInput){
+
+    document.getElementById("error").textContent =
+      "Introduce un PIN";
+
+    return;
+  }
+
+  document.getElementById("error").textContent =
+    "Validando acceso...";
+
+  const usuarios =
+    await obtenerUsuarios();
+
+  const usuario = usuarios.find(u =>
+
+    String(u.pin || "").trim() === pinInput &&
+
+    u.activo !== false
+  );
+
+  if(!usuario){
+
+    document.getElementById("error").textContent =
+      "PIN incorrecto";
+
+    limpiar();
+
+    return;
+  }
+
+  guardarSesion(usuario);
+
+  window.location.href =
+    "index.html?v=" +
+    encodeURIComponent(VERSION_MONOLITO);
+};
+
+/* ================= TECLADO FISICO ================= */
+
+document.addEventListener("keydown", function(e){
+
+  if(e.key >= "0" && e.key <= "9"){
+
+    window.num(e.key);
+  }
+
+  if(e.key === "Backspace"){
+
+    const p =
+      document.getElementById("pin");
+
+    p.value =
+      p.value.slice(0,-1);
+  }
+
+  if(e.key === "Enter"){
+
+    window.entrar();
+  }
+});
+
+/* ================= START ================= */
+
+(async function iniciar(){
+
+  const usuarios =
+    await obtenerUsuarios();
+
+  const origen =
+    localStorage.getItem("usuarios_origen") || "-";
+
+  document.getElementById("version").textContent =
+
+    "Versión: " +
+    VERSION_MONOLITO +
+    " · " +
+    origen +
+    " · " +
+    usuarios.length +
+    " usuarios";
+
+})();
+
+</script>
+
+</body>
+</html>

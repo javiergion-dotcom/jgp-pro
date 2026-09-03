@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAGOS · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+header h2{
+  margin:0;
+  font-size:20px;
+}
+
+button{
+  border:0;
+  border-radius:14px;
+  padding:12px;
+  font-size:15px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+}
+
+.contenedor{
+  padding:16px;
+}
+
+.card{
+  background:white;
+  border-radius:22px;
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+}
+
+.cardIncidencia{
+  border:3px solid #c00000;
+  background:#fff0f0;
+}
+
+.proveedor{
+  font-size:22px;
+  font-weight:900;
+}
+
+.detalle{
+  margin-top:6px;
+  color:#5a6872;
+  font-weight:700;
+}
+
+.total{
+  font-size:26px;
+  font-weight:900;
+  margin-top:10px;
+}
+
+.pendiente{
+  margin-top:8px;
+  background:#fff4d8;
+  color:#8a5a00;
+  padding:10px;
+  border-radius:14px;
+  font-weight:900;
+}
+
+.estadoIncidencia{
+  margin-top:10px;
+  background:#ffd6d6;
+  color:#9b0000;
+  padding:10px;
+  border-radius:14px;
+  font-weight:900;
+}
+
+.historialPago{
+  margin-top:10px;
+  background:#edf7ed;
+  border-radius:14px;
+  padding:10px;
+  font-size:14px;
+}
+
+select,input{
+  width:100%;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid #b8c2ca;
+  font-size:16px;
+  margin-top:10px;
+}
+
+.pagado{
+  width:100%;
+  background:#1f8f34;
+  color:white;
+  margin-top:10px;
+}
+
+.incidencia{
+  width:100%;
+  background:#c00000;
+  color:white;
+  margin-top:10px;
+}
+
+.vacio{
+  background:white;
+  border-radius:22px;
+  padding:18px;
+  text-align:center;
+  font-weight:900;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  <h2>💰 PAGOS</h2>
+</header>
+
+<div class="contenedor">
+  <div id="lista"></div>
+</div>
+
+<script>
+
+function leerPagosPendientes(){
+  return JSON.parse(localStorage.getItem("pagos_pendientes") || "[]");
+}
+
+function guardarPagosPendientes(data){
+  localStorage.setItem("pagos_pendientes", JSON.stringify(data));
+}
+
+function leerPagosHistorico(){
+  return JSON.parse(localStorage.getItem("pagos_historico") || "[]");
+}
+
+function guardarPagosHistorico(data){
+  localStorage.setItem("pagos_historico", JSON.stringify(data));
+}
+
+function leerIncidencias(){
+  return JSON.parse(localStorage.getItem("incidencias") || "[]");
+}
+
+function guardarIncidencias(data){
+  localStorage.setItem("incidencias", JSON.stringify(data));
+}
+
+function pintar(){
+
+  const pagos = leerPagosPendientes();
+  let html = "";
+
+  if(pagos.length === 0){
+
+    html = `
+      <div class="vacio">
+        No hay pagos pendientes
+      </div>
+    `;
+
+  }else{
+
+    pagos.forEach((p,i)=>{
+
+      const total = Number(p.total || 0);
+      const pendiente = Number(p.pendiente || total);
+
+      const tieneIncidencia = p.estado === "INCIDENCIA";
+
+      html += `
+        <div class="card ${tieneIncidencia ? "cardIncidencia" : ""}">
+
+          <div class="proveedor">
+            ${p.proveedor || "SIN PROVEEDOR"}
+          </div>
+
+          <div class="detalle">
+            Fecha pedido: ${p.fecha || ""}
+          </div>
+
+          <div class="detalle">
+            Líneas: ${p.lineas ? p.lineas.length : 0}
+          </div>
+
+          <div class="total">
+            ${total.toFixed(2)} €
+          </div>
+
+          <div class="pendiente">
+            Pendiente: ${pendiente.toFixed(2)} €
+          </div>
+
+          ${
+            tieneIncidencia
+            ? `
+              <div class="estadoIncidencia">
+                🚨 INCIDENCIA PENDIENTE<br><br>
+                Motivo: ${p.motivoIncidencia || ""}<br><br>
+                Solución prevista: ${p.solucionIncidencia || ""}
+              </div>
+            `
+            : ""
+          }
+
+          ${
+            p.historialPagos && p.historialPagos.length
+            ? `
+              <div class="historialPago">
+                <b>Historial pagos:</b><br>
+                ${
+                  p.historialPagos.map(h=>`
+                    • ${h.fecha} → ${Number(h.importe).toFixed(2)} €
+                  `).join("<br>")
+                }
+              </div>
+            `
+            : ""
+          }
+
+          <select id="tipo${i}">
+            <option value="CONTADO">CONTADO</option>
+            <option value="REPOSICION">REPOSICIÓN</option>
+            <option value="BANCO">BANCO</option>
+            <option value="A CUENTA">A CUENTA</option>
+          </select>
+
+          <input
+            type="number"
+            id="importe${i}"
+            placeholder="Importe pagado"
+            value="${pendiente.toFixed(2)}"
+          >
+
+          <button class="pagado" onclick="marcarPagado(${i})">
+            ✅ Registrar pago
+          </button>
+
+          <button class="incidencia" onclick="marcarIncidencia(${i})">
+            🚨 Marcar incidencia
+          </button>
+
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("lista").innerHTML = html;
+}
+
+function marcarPagado(i){
+
+  let pendientes = leerPagosPendientes();
+  let historico = leerPagosHistorico();
+
+  let pago = pendientes[i];
+
+  const tipoPago = document.getElementById("tipo"+i).value;
+
+  const importe = parseFloat(
+    document.getElementById("importe"+i).value || 0
+  );
+
+  if(importe <= 0){
+    alert("Introduce importe válido");
+    return;
+  }
+
+  if(!pago.pendiente){
+    pago.pendiente = Number(pago.total || 0);
+  }
+
+  if(!pago.historialPagos){
+    pago.historialPagos = [];
+  }
+
+  pago.historialPagos.unshift({
+    fecha:new Date().toLocaleString("es-ES"),
+    importe:importe,
+    tipo:tipoPago
+  });
+
+  pago.tipoPago = tipoPago;
+
+  pago.pendiente =
+    Number(pago.pendiente) - importe;
+
+  if(pago.pendiente < 0){
+    pago.pendiente = 0;
+  }
+
+  if(pago.pendiente === 0){
+
+    pago.estado = "PAGADO";
+    pago.fechaPago = new Date().toLocaleString("es-ES");
+
+    historico.unshift(pago);
+
+    pendientes.splice(i,1);
+
+    guardarPagosHistorico(historico);
+
+    alert("Pago completado.");
+
+  }else{
+
+    pago.estado = "A CUENTA";
+
+    alert(
+      "Pago parcial registrado.\n\n" +
+      "Pendiente: " +
+      pago.pendiente.toFixed(2) + " €"
+    );
+  }
+
+  guardarPagosPendientes(pendientes);
+
+  pintar();
+}
+
+function marcarIncidencia(i){
+
+  let pendientes = leerPagosPendientes();
+  let incidencias = leerIncidencias();
+
+  const pago = pendientes[i];
+
+  const motivo = prompt("Motivo de la incidencia");
+  if(!motivo) return;
+
+  const solucion = prompt("¿Cómo se resolverá?");
+  if(!solucion) return;
+
+  const incidencia = {
+
+    id:Date.now(),
+
+    proveedor:pago.proveedor || "",
+
+    titulo:
+      "Incidencia con " +
+      (pago.proveedor || "proveedor"),
+
+    texto:
+      "Proveedor: " + (pago.proveedor || "") +
+      " · Importe: " +
+      Number(pago.total || 0).toFixed(2) + " €" +
+      " · Motivo: " + motivo +
+      " · Solución prevista: " + solucion,
+
+    motivo:motivo,
+
+    solucionPrevista:solucion,
+
+    fecha:new Date().toLocaleString("es-ES"),
+
+    pedidoFecha:pago.fecha || "",
+
+    importe:Number(pago.total || 0),
+
+    resuelta:false
+  };
+
+  incidencias.unshift(incidencia);
+
+  pago.estado = "INCIDENCIA";
+
+  pago.motivoIncidencia = motivo;
+
+  pago.solucionIncidencia = solucion;
+
+  pago.fechaIncidencia = incidencia.fecha;
+
+  pago.incidenciaId = incidencia.id;
+
+  guardarIncidencias(incidencias);
+
+  guardarPagosPendientes(pendientes);
+
+  alert(
+    "Incidencia registrada.\n\n" +
+    "Proveedor marcado hasta resolver."
+  );
+
+  pintar();
+}
+
+function volver(){
+  window.location.href = "index.html";
+}
+
+pintar();
+
+</script>
+
+</body>
+</html>

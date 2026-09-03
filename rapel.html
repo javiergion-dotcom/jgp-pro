@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAPPEL · MONOLITO</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}
+.volver{background:white;color:#17303d;border:0;border-radius:12px;padding:8px 12px;font-weight:900}
+.contenedor{padding:16px}
+.bloque,.card{background:white;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:0 6px 14px rgba(0,0,0,.08)}
+label{display:block;font-weight:900;margin-top:10px;font-size:14px}
+input{width:100%;padding:12px;border-radius:12px;border:1px solid #c5ced6;margin-top:6px;font-size:16px}
+.datoAuto{background:#f1f4f7;border-radius:12px;padding:13px;margin-top:6px;font-weight:900;color:#4f5f69}
+button{border:0;border-radius:14px;padding:13px;font-weight:900;font-size:16px}
+.guardar{width:100%;background:#48a530;color:white;margin-top:14px}
+.nuevo{width:100%;background:#ff9800;color:white;margin-bottom:14px}
+.borrar{background:#c00000;color:white;width:100%;margin-top:10px}
+.titulo{font-size:20px;font-weight:900}
+.detalle{margin-top:6px;color:#4f5f69}
+.totalLinea{margin-top:10px;font-size:20px;font-weight:900}
+.totalGeneral{background:#17303d;color:white;border-radius:18px;padding:18px;text-align:center;font-size:24px;font-weight:900;margin-top:18px}
+.vacio{background:white;border-radius:18px;padding:18px;text-align:center;font-weight:900}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  💶 RAPPEL
+</header>
+
+<div class="contenedor">
+
+<div class="bloque">
+  <label>Año</label>
+  <input id="anio" type="number" onfocus="this.select()" onclick="this.select()">
+
+  <label>Proveedor</label>
+  <input id="proveedor" placeholder="Ej: TURRADO / MAHOU">
+
+  <label>Artículo</label>
+  <input id="articulo" placeholder="Ej: MAHOU 5 ESTRELLAS">
+
+  <label>Litros por unidad de compra</label>
+  <input id="litrosUnidad" type="number" step="0.001" placeholder="Ej: caja tercios 7.92 / barril 30" onfocus="this.select()" onclick="this.select()">
+
+  <label>Litros acumulados desde pedidos</label>
+  <div class="datoAuto" id="litrosAuto">0,00 litros</div>
+
+  <label>Precio litro</label>
+  <input id="precioLitro" type="number" step="0.0001" onfocus="this.select()" onclick="this.select()">
+
+  <label>Porcentaje rappel</label>
+  <input id="porcentaje" type="number" step="0.01" onfocus="this.select()" onclick="this.select()">
+
+  <button class="guardar" onclick="guardarCondicion()">💾 Guardar condición anual</button>
+</div>
+
+<button class="nuevo" onclick="limpiarFormulario()">➕ Nueva condición</button>
+
+<div id="lista"></div>
+
+<div class="totalGeneral" id="totalGeneral">TOTAL GENERAL: 0,00 €</div>
+
+</div>
+
+<script>
+let editandoIndice = "";
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function esHostelero(){
+  const u = usuarioActual().toUpperCase();
+  return u === "JAVI" || u === "JAVIER" || u === "SILVIA";
+}
+
+function protegerAcceso(){
+  if(!esHostelero()){
+    alert("⚠ ACCESO SOLO HOSTELERÍA");
+    window.location.href = "index.html";
+  }
+}
+
+protegerAcceso();
+
+function volver(){
+  window.location.href = "index.html";
+}
+
+function euros(n){
+  return Number(n || 0).toFixed(2).replace(".",",") + " €";
+}
+
+function litrosTxt(n){
+  return Number(n || 0).toFixed(2).replace(".",",") + " litros";
+}
+
+function leerRapel(){
+  return JSON.parse(localStorage.getItem("rapel_anual") || "[]");
+}
+
+function guardarRapel(data){
+  localStorage.setItem("rapel_anual", JSON.stringify(data));
+}
+
+function normalizar(t){
+  return String(t || "").trim().toUpperCase();
+}
+
+function calcularTotal(r){
+  return Number(r.litros || 0) * Number(r.precioLitro || 0) * (Number(r.porcentaje || 0) / 100);
+}
+
+function limpiarFormulario(){
+  editandoIndice = "";
+  document.getElementById("anio").value = new Date().getFullYear();
+  document.getElementById("proveedor").value = "";
+  document.getElementById("articulo").value = "";
+  document.getElementById("litrosUnidad").value = "";
+  document.getElementById("litrosAuto").textContent = litrosTxt(0);
+  document.getElementById("precioLitro").value = "";
+  document.getElementById("porcentaje").value = "";
+}
+
+function guardarCondicion(){
+  const anio = Number(document.getElementById("anio").value || new Date().getFullYear());
+  const proveedor = normalizar(document.getElementById("proveedor").value);
+  const articulo = normalizar(document.getElementById("articulo").value);
+  const litrosUnidad = Number(document.getElementById("litrosUnidad").value || 0);
+  const precioLitro = Number(document.getElementById("precioLitro").value || 0);
+  const porcentaje = Number(document.getElementById("porcentaje").value || 0);
+
+  if(!proveedor){
+    alert("Falta el proveedor.");
+    return;
+  }
+
+  if(!articulo){
+    alert("Falta el artículo.");
+    return;
+  }
+
+  let data = leerRapel();
+
+  let idx = data.findIndex(r =>
+    Number(r.anio) === anio &&
+    normalizar(r.proveedor) === proveedor &&
+    normalizar(r.articulo) === articulo
+  );
+
+  if(editandoIndice !== ""){
+    idx = Number(editandoIndice);
+  }
+
+  const litrosAutomaticos = idx >= 0 ? Number(data[idx].litros || 0) : 0;
+
+  const registro = {
+    anio,
+    proveedor,
+    articulo,
+    litrosUnidad,
+    litros: litrosAutomaticos,
+    precioLitro,
+    porcentaje,
+    actualizadoPor: usuarioActual(),
+    actualizado: new Date().toLocaleString("es-ES")
+  };
+
+  if(idx >= 0){
+    data[idx] = registro;
+  }else{
+    data.unshift(registro);
+  }
+
+  guardarRapel(data);
+  limpiarFormulario();
+  pintar();
+}
+
+function borrarCondicion(i){
+  if(!confirm("¿Borrar esta condición de rappel?")) return;
+  let data = leerRapel();
+  data.splice(i,1);
+  guardarRapel(data);
+  pintar();
+}
+
+function cargarEnFormulario(i){
+  let data = leerRapel();
+  let r = data[i];
+
+  editandoIndice = i;
+
+  document.getElementById("anio").value = r.anio || new Date().getFullYear();
+  document.getElementById("proveedor").value = r.proveedor || "";
+  document.getElementById("articulo").value = r.articulo || "";
+  document.getElementById("litrosUnidad").value = r.litrosUnidad || "";
+  document.getElementById("litrosAuto").textContent = litrosTxt(r.litros || 0);
+  document.getElementById("precioLitro").value = r.precioLitro || "";
+  document.getElementById("porcentaje").value = r.porcentaje || "";
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function pintar(){
+  let data = leerRapel();
+  let html = "";
+  let totalGeneral = 0;
+
+  if(data.length === 0){
+    html = `<div class="vacio">No hay condiciones de rappel todavía.</div>`;
+  }
+
+  data.forEach((r,i)=>{
+    let total = calcularTotal(r);
+    totalGeneral += total;
+
+    html += `
+      <div class="card">
+        <div class="titulo">${r.articulo}</div>
+        <div class="detalle">Proveedor: <strong>${r.proveedor}</strong></div>
+        <div class="detalle">Año: ${r.anio}</div>
+        <div class="detalle">Litros por unidad de compra: <strong>${litrosTxt(r.litrosUnidad)}</strong></div>
+        <div class="detalle">Litros acumulados desde pedidos: <strong>${litrosTxt(r.litros)}</strong></div>
+        <div class="detalle">Precio litro: ${euros(r.precioLitro)}</div>
+        <div class="detalle">Porcentaje: ${Number(r.porcentaje || 0).toFixed(2).replace(".",",")}%</div>
+        <div class="totalLinea">TOTAL GENERADO: ${euros(total)}</div>
+        <div class="detalle">Última actualización: ${r.actualizado || ""} · ${r.actualizadoPor || ""}</div>
+
+        <button class="guardar" onclick="cargarEnFormulario(${i})">Editar condición</button>
+        <button class="borrar" onclick="borrarCondicion(${i})">🗑 Borrar</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("lista").innerHTML = html;
+  document.getElementById("totalGeneral").textContent = "TOTAL GENERAL: " + euros(totalGeneral);
+}
+
+limpiarFormulario();
+pintar();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO · MONOLITO GPT PRO</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:18px;
+  text-align:center;
+  font-size:28px;
+  font-weight:900;
+  box-shadow:0 4px 12px rgba(0,0,0,.2);
+}
+
+.contenido{
+  max-width:1200px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  border-radius:24px;
+  padding:22px;
+  margin-bottom:18px;
+  box-shadow:0 10px 20px rgba(0,0,0,.12);
+}
+
+.titulo{
+  font-size:30px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+
+.subtitulo{
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:12px;
+}
+
+.texto{
+  line-height:1.6;
+  color:#41525c;
+  font-size:17px;
+}
+
+input{
+  width:100%;
+  padding:16px;
+  border-radius:16px;
+  border:1px solid #bcc8cf;
+  margin-top:16px;
+  font-size:18px;
+}
+
+button{
+  width:100%;
+  border:0;
+  border-radius:16px;
+  padding:16px;
+  margin-top:16px;
+  background:#17303d;
+  color:white;
+  font-size:18px;
+  font-weight:900;
+}
+
+.modulo{
+  border-left:8px solid #17303d;
+}
+
+.etiqueta{
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  background:#eef2f5;
+  font-size:12px;
+  font-weight:900;
+  margin-top:12px;
+}
+
+.frase{
+  text-align:center;
+  font-size:24px;
+  font-weight:900;
+  margin-top:30px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  🎬 DEMO · MONOLITO GPT PRO
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+
+    <div class="titulo">
+      MONOLITO GPT PRO
+    </div>
+
+    <div class="texto">
+      Sistema privado de control hostelero.
+      <br><br>
+      Diseñado desde hostelería real para:
+      <br><br>
+      • reducir pérdidas
+      <br>
+      • eliminar excusas
+      <br>
+      • mejorar comunicación
+      <br>
+      • controlar incidencias
+      <br>
+      • organizar el negocio
+      <br><br>
+      Esta DEMO muestra qué resuelve el sistema,
+      pero no explica su funcionamiento interno.
+    </div>
+
+    <input id="codigo" placeholder="Introduce código DEMO">
+
+    <button onclick="entrarDemo()">
+      🔐 Entrar en la DEMO
+    </button>
+
+  </div>
+
+
+  <div id="demo" style="display:none">
+
+
+    <div class="card modulo">
+      <div class="subtitulo">📦 PEDIDOS</div>
+
+      <div class="texto">
+        Control real de compras.
+        <br><br>
+        Evita:
+        <br>
+        • pérdidas invisibles
+        <br>
+        • errores proveedor
+        <br>
+        • excusas
+        <br>
+        • olvidos
+      </div>
+
+      <div class="etiqueta">
+        Blindar compras
+      </div>
+    </div>
+
+
+    <div class="card modulo">
+      <div class="subtitulo">📢 COMUNICACIÓN</div>
+
+      <div class="texto">
+        Comunicación interna rápida y persistente.
+        <br><br>
+        Las comunicaciones no pueden eliminarse
+        sin cerrarse antes.
+      </div>
+
+      <div class="etiqueta">
+        Evita olvidos
+      </div>
+    </div>
+
+
+    <div class="card modulo">
+      <div class="subtitulo">📂 DOCUMENTACIÓN</div>
+
+      <div class="texto">
+        Centralización de:
+        <br><br>
+        • licencias
+        <br>
+        • seguros
+        <br>
+        • contratos
+        <br>
+        • PDFs
+        <br>
+        • imágenes
+      </div>
+
+      <div class="etiqueta">
+        Tranquilidad documental
+      </div>
+    </div>
+
+
+    <div class="card modulo">
+      <div class="subtitulo">📊 VENTAS</div>
+
+      <div class="texto">
+        Módulo únicamente informativo.
+        <br><br>
+        NO modifica:
+        <br>
+        • contabilidad
+        <br>
+        • fiscalidad
+        <br>
+        • beneficio real
+      </div>
+
+      <div class="etiqueta">
+        Seguimiento diario
+      </div>
+    </div>
+
+
+    <div class="card modulo">
+      <div class="subtitulo">🍽️ GESTIÓN DE RESERVAS</div>
+
+      <div class="texto">
+        Organización inteligente de mesas.
+        <br><br>
+        El sistema propone distribución
+        según:
+        <br><br>
+        • horarios
+        <br>
+        • comensales
+        <br>
+        • uniones posibles
+        <br>
+        • doblajes
+      </div>
+
+      <div class="etiqueta">
+        El programa propone · El hostelero decide
+      </div>
+    </div>
+
+
+    <div class="frase">
+      Hostelero + móvil + ChatGPT = MONOLITO GPT PRO
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function entrarDemo(){
+
+  const codigo = document.getElementById("codigo").value.trim();
+
+  if(codigo !== "MONOLITO2026"){
+    alert("Código incorrecto.");
+    return;
+  }
+
+  document.getElementById("demo").style.display = "block";
+
+  window.scrollTo({
+    top:500,
+    behavior:"smooth"
+  });
+}
+</script>
+<script>
+
+/* ===== CONTROL DEMO ===== */
+
+function esDemo(){
+  const usuario =
+    (localStorage.getItem("usuario") || "")
+    .toUpperCase();
+
+  return usuario === "DEMO";
+}
+
+function bloquearDemo(){
+
+  if(!esDemo()) return;
+
+  const bloqueados = [
+
+    "configuracion.html",
+    "usuarios.html",
+    "licencias.html"
+
+  ];
+
+  document.querySelectorAll(".boton").forEach(b=>{
+
+    const onclick = b.getAttribute("onclick") || "";
+
+    bloqueados.forEach(destino=>{
+
+      if(onclick.includes(destino)){
+
+        b.style.opacity = ".45";
+        b.style.filter = "grayscale(1)";
+
+        b.onclick = function(){
+
+          alert(
+            "Acceso no disponible en modo DEMO"
+          );
+
+        };
+
+      }
+
+    });
+
+  });
+
+}
+
+/* ===== AUTO CADUCIDAD DEMO ===== */
+
+function controlarCaducidadDemo(){
+
+  if(!esDemo()) return;
+
+  const inicio =
+    Number(localStorage.getItem("demo_inicio") || 0);
+
+  if(!inicio) return;
+
+  const ahora = Date.now();
+
+  const limite =
+    60 * 60 * 1000;
+
+  if((ahora - inicio) > limite){
+
+    localStorage.removeItem("loginActivo");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("nivel");
+    localStorage.removeItem("demo_inicio");
+
+    alert(
+      "Sesión DEMO finalizada"
+    );
+
+    window.location.href = "login.html";
+
+  }
+
+}
+
+/* ===== ACTIVAR DEMO ===== */
+
+if(
+  (localStorage.getItem("usuario") || "")
+  .toUpperCase() === "DEMO"
+){
+
+  if(!localStorage.getItem("demo_inicio")){
+
+    localStorage.setItem(
+      "demo_inicio",
+      Date.now()
+    );
+
+  }
+
+}
+
+bloquearDemo();
+controlarCaducidadDemo();
+
+</script>
+</body>
+</html>

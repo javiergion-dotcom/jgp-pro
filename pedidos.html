@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PEDIDOS · MONOLITO</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;font-weight:900;font-size:20px}
+.contenedor{padding:16px}
+select{width:100%;padding:12px;border-radius:14px;margin-bottom:15px;font-size:16px}
+.card{background:white;border-radius:16px;padding:12px;margin-bottom:10px}
+.card.costeCero{border:3px solid #ff9800;background:#fff8ea}
+.nombre{font-weight:900;font-size:17px}
+.detalle{color:#4f5f69;font-size:14px;margin-top:4px}
+.fila{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:10px}
+input{width:80px;padding:10px;border-radius:12px;border:1px solid #ccc;text-align:center;font-size:16px}
+.totalLinea{font-weight:900;font-size:16px}
+.avisoCero{margin-top:8px;color:#c06b00;font-weight:900;font-size:13px}
+.botonCero{width:100%;margin-top:10px;padding:10px;border:0;border-radius:12px;font-weight:900;font-size:14px;background:#17303d;color:white}
+.botonCero.activo{background:#ff9800;color:white}
+.totalFinal{font-size:22px;font-weight:900;margin-top:20px}
+button{width:100%;padding:14px;margin-top:15px;border:0;border-radius:14px;font-weight:900;font-size:16px}
+.guardar{background:#48a530;color:white}
+.volver{background:white;color:#17303d;width:auto;margin:0 10px 0 0;padding:7px 11px}
+.promo{margin-top:10px;background:#fff6cf;border:2px solid #ffe066;border-radius:12px;padding:10px;font-size:13px;font-weight:900;color:#8a6a00}
+.promoOk{margin-top:8px;background:#e5ffe5;border:2px solid #8bd98b;border-radius:12px;padding:9px;font-size:13px;font-weight:900;color:#1a7f1a}
+.promoAlerta{margin-top:8px;background:#ffe5e5;border:2px solid #ff9b9b;border-radius:12px;padding:9px;font-size:13px;font-weight:900;color:#c00000}
+.stockBox{margin-top:10px;background:#eef7ff;border:2px solid #cfe5ff;border-radius:12px;padding:10px}
+.stockTitulo{font-size:13px;font-weight:900;margin-bottom:8px}
+.stockFila{display:flex;gap:10px}
+.stockFila input{flex:1;width:auto}
+.avisosBox{background:#fff8db;border:3px solid #f0c94a;border-radius:18px;padding:14px;margin-bottom:16px}
+.avisosTitulo{font-weight:900;font-size:18px;margin-bottom:8px;color:#8a6a00}
+.avisoLinea{background:white;border-radius:12px;padding:10px;margin-top:8px;font-weight:900;color:#17303d}
+.btnResolverAviso{margin-top:10px;background:#48a530;color:white;border:0;border-radius:12px;padding:10px;font-weight:900;width:100%}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  📝 PEDIDOS
+</header>
+
+<div class="contenedor">
+
+<div id="avisosPedidos"></div>
+
+<select id="proveedor" onchange="cargarArticulos()"></select>
+
+<div id="articulos"></div>
+
+<div class="totalFinal" id="totalFinal">TOTAL PAGO: 0,00 €</div>
+
+<button class="guardar" onclick="guardarPedido()">Guardar pedido</button>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAxbU-eWFeKfI74_X_V-A8zX_YOUR_KEY_MATCHED",
+  authDomain: "monolito-ed87d.firebaseapp.com",
+  projectId: "monolito-ed87d",
+  storageBucket: "monolito-ed87d.appspot.com",
+  messagingSenderId: "737849584362",
+  appId: "1:737849584362:web:3d1821bedcd64080cf8593",
+  measurementId: "G-7XCZ0VN7ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let pedido = [];
+let avisosCloud = [];
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function esHostelero(){
+  const u = usuarioActual().toUpperCase();
+  return u === "JAVI" || u === "JAVIER" || u === "SILVIA";
+}
+
+function volver(){
+  window.location.href = "index.html";
+}
+
+function normalizar(t){
+  return String(t || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"");
+}
+
+function leerArticulos(){
+  return JSON.parse(localStorage.getItem("articulos") || "[]")
+    .filter(a => a.activo !== false);
+}
+
+function leerProveedores(){
+  let p = JSON.parse(localStorage.getItem("proveedores") || "[]")
+    .filter(x => x.activo !== false);
+
+  if(p.length===0){
+    p = [
+      {nombre:"CANDELAS"},
+      {nombre:"TURRADO"},
+      {nombre:"SANPEDRO"},
+      {nombre:"DEO"}
+    ];
+  }
+
+  return p;
+}
+
+function leerPromociones(){
+  return JSON.parse(localStorage.getItem("promociones_monolito") || "[]");
+}
+
+function pintarAvisosPedidos(){
+  if(avisosCloud.length === 0){
+    document.getElementById("avisosPedidos").innerHTML = "";
+    return;
+  }
+
+  let html = `
+    <div class="avisosBox">
+      <div class="avisosTitulo">🛎️ AVISOS PARA PEDIDOS</div>
+  `;
+
+  avisosCloud.forEach((a)=>{
+    html += `
+      <div class="avisoLinea">
+        🛎️ ${a.texto || ""}
+
+        <button class="btnResolverAviso" onclick="resolverAvisoPedido('${a.id}')">
+          ✅ RESUELTO
+        </button>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  document.getElementById("avisosPedidos").innerHTML = html;
+}
+
+async function resolverAvisoPedido(id){
+  if(!confirm("¿Eliminar aviso de pedidos?")) return;
+
+  try{
+    await deleteDoc(doc(db, "avisos_pedidos", id));
+  }catch(e){
+    console.error(e);
+    alert("No se pudo eliminar el aviso en Firebase.");
+  }
+}
+
+function iniciarAvisosFirebase(){
+  const q = query(
+    collection(db, "avisos_pedidos"),
+    orderBy("fechaMs", "desc")
+  );
+
+  onSnapshot(q, (snap)=>{
+    avisosCloud = [];
+
+    snap.forEach((d)=>{
+      avisosCloud.push({
+        id:d.id,
+        ...d.data()
+      });
+    });
+
+    pintarAvisosPedidos();
+
+  }, (error)=>{
+    console.error(error);
+    document.getElementById("avisosPedidos").innerHTML = `
+      <div class="avisosBox">
+        <div class="avisosTitulo">⚠️ No se pudieron cargar avisos</div>
+      </div>
+    `;
+  });
+}
+
+function cargarProveedores(){
+  const proveedores = leerProveedores();
+
+  document.getElementById("proveedor").innerHTML =
+    `<option value="">Selecciona proveedor</option>` +
+    proveedores.map(p =>
+      `<option value="${p.nombre}">${p.nombre}</option>`
+    ).join("");
+}
+
+function cargarArticulos(){
+  const proveedor = document.getElementById("proveedor").value;
+
+  const articulos = leerArticulos().filter(a =>
+    normalizar(a.proveedor) === normalizar(proveedor)
+  );
+
+  pedido = articulos.map(a => ({
+    ...a,
+    cantidad:0,
+    costeCero:false,
+    excluirRappel:false,
+    stockActual:"",
+    pedir:"",
+    mostrarStock:false
+  }));
+
+  let historico = JSON.parse(localStorage.getItem("pedidos_historico") || "[]");
+
+  let pedidosProveedor = historico.filter(p =>
+    normalizar(p.proveedor) === normalizar(proveedor)
+  );
+
+  let activarStock = pedidosProveedor.length >= 3;
+
+  pedido.forEach(a=>{
+    a.mostrarStock = activarStock;
+  });
+
+  pintar();
+}
+
+function promoArticulo(a){
+  const promos = leerPromociones();
+
+  const nombreArticulo = normalizar(a.articulo);
+  const proveedorArticulo = normalizar(a.proveedor);
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  return promos.find(p => {
+    const proveedorPromo = normalizar(p.proveedor);
+
+    if(proveedorPromo !== proveedorArticulo){
+      return false;
+    }
+
+    const inicio = p.fechaInicio || p.inicio || p.desde || "";
+    const fin = p.fechaFin || p.fin || p.hasta || "";
+
+    if(inicio){
+      const dInicio = new Date(inicio + "T00:00:00");
+      if(hoy < dInicio) return false;
+    }
+
+    if(fin){
+      const dFin = new Date(fin + "T23:59:59");
+      if(hoy > dFin) return false;
+    }
+
+    const textoPromo = normalizar(
+      (p.articulo || "") + " " +
+      (p.producto || "") + " " +
+      (p.nombreArticulo || "") + " " +
+      (p.promocion || "") + " " +
+      (p.nombre || "")
+    );
+
+    if(!textoPromo){
+      return false;
+    }
+
+    return textoPromo.includes(nombreArticulo) ||
+           nombreArticulo.includes(textoPromo);
+  });
+}
+
+function datosPromo(a){
+  const promo = promoArticulo(a);
+
+  if(!promo) return null;
+
+  const conCargo = Number(
+    promo.unidadesConCargo ||
+    promo.conCargo ||
+    promo.pagadas ||
+    promo.cargo ||
+    0
+  );
+
+  const gratis = Number(
+    promo.unidadesGratis ||
+    promo.unidadesCoste0 ||
+    promo.sinCargo ||
+    promo.gratis ||
+    0
+  );
+
+  if(conCargo <= 0 || gratis <= 0){
+    return null;
+  }
+
+  const cantidad = Number(a.cantidad || 0);
+  const bloques = Math.floor(cantidad / conCargo);
+  const resto = cantidad % conCargo;
+  const gratisTotal = bloques * gratis;
+  const faltan = resto === 0 ? 0 : conCargo - resto;
+
+  let textoPedido = "";
+
+  if(gratisTotal > 0){
+    textoPedido = cantidad + " + " + gratisTotal;
+  }
+
+  return {
+    promo,
+    conCargo,
+    gratis,
+    cantidad,
+    bloques,
+    resto,
+    gratisTotal,
+    faltan,
+    textoPedido
+  };
+}
+
+function avisoPromoHTML(a){
+  const d = datosPromo(a);
+
+  if(!d) return "";
+
+  let html = `
+    <div class="promo">
+      🟡 PROMOCIÓN ACTIVA<br>
+      ${d.conCargo} + ${d.gratis}
+    </div>
+  `;
+
+  if(d.cantidad > 0 && d.gratisTotal > 0){
+    html += `
+      <div class="promoOk">
+        ✅ EN PEDIDO: ${d.textoPedido}<br>
+        ${d.cantidad} con cargo + ${d.gratisTotal} sin cargo<br>
+        Cuenta para RAPPEL: ${d.cantidad + d.gratisTotal}
+      </div>
+    `;
+  }else if(d.cantidad > 0 && d.faltan > 0){
+    html += `
+      <div class="promoAlerta">
+        ⚠ Estás pidiendo ${d.cantidad}.<br>
+        Con ${d.conCargo} entra promoción ${d.conCargo} + ${d.gratis}.<br>
+        Faltan ${d.faltan}.
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+function pintar(){
+  let html = "";
+
+  pedido.forEach((a,i)=>{
+    const precioCaja = Number(a.precioUnidad || 0) * Number(a.formato || 1);
+    const lineaPago = a.costeCero ? 0 : Number(a.cantidad || 0) * precioCaja;
+
+    html += `
+    <div class="card ${a.costeCero ? "costeCero" : ""}">
+
+      <div class="nombre">${a.articulo}</div>
+
+      <div class="detalle">
+        ${a.unidadFormato} ·
+        ${Number(a.precioUnidad || 0).toFixed(2)} € ·
+        IVA ${a.iva}%
+      </div>
+
+      ${avisoPromoHTML(a)}
+
+      ${
+        a.mostrarStock ? `
+        <div class="stockBox">
+
+          <div class="stockTitulo">
+            📦 CONTROL DE ALMACÉN
+          </div>
+
+          <div class="stockFila">
+
+            <input
+              type="number"
+              placeholder="Cuántas hay"
+              value="${a.stockActual}"
+              onchange="stockActual(${i},this.value)"
+            >
+
+            <input
+              type="number"
+              placeholder="Cuántas pides"
+              value="${a.pedir}"
+              onchange="stockPedir(${i},this.value)"
+            >
+
+          </div>
+
+        </div>
+        ` : ""
+      }
+
+      <div class="fila">
+
+        <input
+          class="cantidadPedido"
+          data-indice="${i}"
+          type="number"
+          value="${a.cantidad}"
+          onfocus="this.select()"
+          onclick="this.select()"
+          onchange="cambiar(${i}, this.value)"
+          onkeydown="siguienteConEnter(event, ${i})"
+        >
+
+        <div class="totalLinea" id="t${i}">
+          ${lineaPago.toFixed(2)} €
+        </div>
+
+      </div>
+
+      ${
+        esHostelero()
+        ?
+        `
+          <button
+            class="botonCero ${a.costeCero ? "activo" : ""}"
+            onclick="toggleCosteCero(${i})"
+          >
+            ${a.costeCero ? "✅ COSTE 0 € ACTIVADO" : "Marcar COSTE 0 €"}
+          </button>
+        `
+        : ""
+      }
+
+      ${
+        a.costeCero
+        ?
+        `
+          <div class="avisoCero">
+            COSTE 0 € manual · No suma pagos · No suma RAPPEL
+          </div>
+        `
+        : ""
+      }
+
+    </div>
+    `;
+  });
+
+  document.getElementById("articulos").innerHTML = html;
+
+  calcular();
+}
+
+function cambiar(i, valor){
+  pedido[i].cantidad = Number(valor || 0);
+  pintar();
+}
+
+function siguienteConEnter(e,i){
+  if(e.key !== "Enter") return;
+
+  e.preventDefault();
+
+  cambiar(i, e.target.value);
+
+  setTimeout(function(){
+    const inputs = document.querySelectorAll(".cantidadPedido");
+
+    if(inputs[i+1]){
+      inputs[i+1].focus();
+      inputs[i+1].select();
+    }
+  },80);
+}
+
+function stockActual(i,v){
+  pedido[i].stockActual = v;
+}
+
+function stockPedir(i,v){
+  pedido[i].pedir = v;
+}
+
+function toggleCosteCero(i){
+  if(!esHostelero()){
+    alert("Solo hostelería puede marcar coste 0 €");
+    return;
+  }
+
+  pedido[i].costeCero =
+    !pedido[i].costeCero;
+
+  pedido[i].excluirRappel =
+    pedido[i].costeCero;
+
+  pintar();
+}
+
+function calcular(){
+  let totalPago = 0;
+
+  pedido.forEach((a,i)=>{
+    let precioCaja =
+      Number(a.precioUnidad || 0) *
+      Number(a.formato || 1);
+
+    let linea =
+      Number(a.cantidad || 0) * precioCaja;
+
+    let lineaPago =
+      a.costeCero ? 0 : linea;
+
+    totalPago += lineaPago;
+
+    const celda =
+      document.getElementById("t"+i);
+
+    if(celda){
+      celda.textContent =
+        lineaPago.toFixed(2) + " €";
+    }
+  });
+
+  document.getElementById("totalFinal").textContent =
+    "TOTAL PAGO: " + totalPago.toFixed(2) + " €";
+}
+
+function guardarPedido(){
+  const proveedor =
+    document.getElementById("proveedor").value;
+
+  if(!proveedor){
+    alert("Selecciona proveedor");
+    return;
+  }
+
+  const lineas =
+    pedido.filter(a =>
+      Number(a.cantidad || 0) > 0
+    );
+
+  if(lineas.length === 0){
+    alert("Sin cantidades");
+    return;
+  }
+
+  const ahora = new Date();
+
+  const lineasFinal = lineas.map(a => {
+    const precioOriginalSinIva =
+      Number(a.precioUnidad || 0) *
+      Number(a.formato || 1);
+
+    const costeCero = a.costeCero === true;
+    const dPromo = datosPromo(a);
+
+    const cantidadCargo = Number(a.cantidad || 0);
+    const cantidadGratis = dPromo ? dPromo.gratisTotal : 0;
+
+    return {
+      articulo: a.articulo,
+      proveedor: proveedor,
+
+      cantidad: cantidadCargo,
+      cantidadGratisPromo: cantidadGratis,
+      cantidadTotalRappel: costeCero ? 0 : cantidadCargo + cantidadGratis,
+
+      unidadFormato: a.unidadFormato || "",
+      formato: Number(a.formato || 1),
+      iva: Number(a.iva || 21),
+
+      precioOriginalSinIva: precioOriginalSinIva,
+      precioSinIva: costeCero ? 0 : precioOriginalSinIva,
+
+      costeCero: costeCero,
+      excluirRappel: costeCero,
+      cuentaConsumo:true,
+
+      stockActual:a.stockActual || "",
+      pedir:a.pedir || "",
+
+      promocionActiva: dPromo ? true : false,
+      promocionTexto: dPromo ? (dPromo.conCargo + " + " + dPromo.gratis) : "",
+      unidadesConCargoPromo: dPromo ? dPromo.conCargo : 0,
+      unidadesGratisPromo: dPromo ? dPromo.gratis : 0,
+      unidadesGratisCalculadas: cantidadGratis,
+      textoPedidoPromo: dPromo && dPromo.textoPedido ? dPromo.textoPedido : ""
+    };
+  });
+
+  const totalPago = lineasFinal.reduce((t,l)=>
+    t + (l.cantidad * l.precioSinIva)
+  ,0);
+
+  const pedidoGuardado = {
+    proveedor,
+    fecha: ahora.toLocaleString("es-ES"),
+    usuario: usuarioActual(),
+    totalPago,
+    lineas: lineasFinal
+  };
+
+  let historico =
+    JSON.parse(localStorage.getItem("pedidos_historico") || "[]");
+
+  historico.unshift(pedidoGuardado);
+
+  localStorage.setItem(
+    "pedidos_historico",
+    JSON.stringify(historico)
+  );
+
+  if(totalPago > 0){
+
+    let pagos =
+      JSON.parse(localStorage.getItem("pagos_pendientes") || "[]");
+
+    pagos.unshift({
+      proveedor,
+      fecha: ahora.toLocaleString("es-ES"),
+      total: totalPago,
+      lineas: lineasFinal.filter(l => !l.costeCero)
+    });
+
+    localStorage.setItem(
+      "pagos_pendientes",
+      JSON.stringify(pagos)
+    );
+  }
+
+  if(totalPago === 0){
+    alert("Pedido COSTE 0 € guardado. No genera pago.");
+  }else{
+    alert("Pedido guardado correctamente");
+  }
+
+  location.reload();
+}
+
+Object.assign(window,{
+  volver,
+  cargarArticulos,
+  cambiar,
+  siguienteConEnter,
+  stockActual,
+  stockPedir,
+  toggleCosteCero,
+  guardarPedido,
+  resolverAvisoPedido
+});
+
+iniciarAvisosFirebase();
+cargarProveedores();
+</script>
+
+</body>
+</html>

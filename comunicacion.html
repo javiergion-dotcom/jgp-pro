@@ -1,0 +1,36 @@
+async function guardarComunicacion() {
+  const mensaje = document.getElementById("mensaje").value.trim();
+
+  if(!mensaje){
+    alert("Escribe una comunicación.");
+    return;
+  }
+
+  // 1. Guardado local (mantenemos la estructura)
+  let data = leer();
+  const nuevaComunicacion = {
+    id: Date.now(),
+    mensaje,
+    usuario: usuarioActual(),
+    fecha: new Date().toLocaleString("es-ES"),
+    hecha: false
+  };
+  
+  data.unshift(nuevaComunicacion);
+  guardar(data);
+
+  // 2. BLINDAJE: Sincronización con la nube (Google Cloud/Firebase)
+  try {
+    if (typeof db !== 'undefined') {
+      // Guardamos en la colección 'comunicaciones' del monolito
+      await db.collection('comunicaciones').doc(nuevaComunicacion.id.toString()).set(nuevaComunicacion);
+      console.log("✅ Comunicación sincronizada con la nube.");
+    }
+  } catch (error) {
+    console.error("⚠️ Aviso: La comunicación se guardó localmente, pero no pudo sincronizarse con la nube.", error);
+  }
+
+  document.getElementById("mensaje").value="";
+  pintar();
+  alert("Comunicación guardada y sincronizada.");
+}

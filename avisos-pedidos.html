@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVISOS PEDIDOS · MONOLITO</title><style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;align-items:center;gap:12px}
+header h2{margin:0;font-size:20px}
+button{border:0;border-radius:14px;padding:12px;font-size:16px;font-weight:900;cursor:pointer}
+.volver{background:white;color:#17303d;width:auto;padding:8px 12px}
+.contenedor{padding:16px}
+.card{background:white;border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 8px 18px rgba(0,0,0,.12)}
+label{display:block;font-weight:900;margin-top:12px}
+textarea,select{width:100%;margin-top:6px;padding:13px;border-radius:16px;border:1px solid #b8c2ca;font-size:16px}
+textarea{min-height:110px;resize:none}
+.guardar{width:100%;background:#48a530;color:white;margin-top:14px}
+.eliminar{width:100%;background:#c00000;color:white;margin-top:12px}
+.aviso{border-left:8px solid #ffb300}
+.incidencia{border-left:8px solid #c00000}
+.texto{font-size:16px;font-weight:900}
+.fecha{margin-top:8px;color:#60707a;font-size:13px;font-weight:900}
+.tipo{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:8px}
+.tipoAviso{background:#fff3cd;color:#8a6200}
+.tipoIncidencia{background:#ffd7d7;color:#9b0000}
+.vacio{background:white;border-radius:22px;padding:18px;text-align:center;font-weight:900;color:#60707a}
+.estado{font-size:13px;font-weight:900;color:#60707a;margin-bottom:12px}
+</style></head><body><header>
+  <button class="volver" onclick="volver()">←</button>
+  <h2>🛎️ AVISOS PEDIDOS</h2>
+</header><div class="contenedor">  <div class="estado" id="estadoCloud">Conectando con la nube...</div>  <div class="card">
+    <label>Tipo</label>
+    <select id="tipo">
+      <option value="AVISO">AVISO</option>
+      <option value="INCIDENCIA">INCIDENCIA</option>
+    </select><label>Texto del aviso</label>
+<textarea id="texto" placeholder="Ejemplo: Falta gel de manos, mini servilletas, vasos takeaway..."></textarea>
+
+<button class="guardar" onclick="guardarAviso()">Guardar aviso</button>
+
+  </div>  <div id="lista"></div></div><script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAxbU-eWFeKfI74_X_V-A8zX_YOUR_KEY_MATCHED",
+  authDomain: "monolito-ed87d.firebaseapp.com",
+  projectId: "monolito-ed87d",
+  storageBucket: "monolito-ed87d.appspot.com",
+  messagingSenderId: "737849584362",
+  appId: "1:737849584362:web:3d1821bedcd64080cf8593",
+  measurementId: "G-7XCZ0VN7ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let avisosCloud = [];
+
+window.volver = function(){
+  window.location.href = "index.html";
+};
+
+window.guardarAviso = async function(){
+  const texto = document.getElementById("texto").value.trim();
+  const tipo = document.getElementById("tipo").value;
+  const usuario = localStorage.getItem("usuario") || "OPERADOR";
+
+  if(!texto){
+    alert("Escribe un aviso.");
+    return;
+  }
+
+  try{
+    await addDoc(collection(db, "avisos_pedidos"), {
+      texto:texto,
+      tipo:tipo,
+      fecha:new Date().toLocaleString("es-ES"),
+      fechaMs:Date.now(),
+      creadoPor:usuario,
+      activo:true,
+      creadoServidor:serverTimestamp()
+    });
+
+    document.getElementById("texto").value = "";
+    document.getElementById("tipo").value = "AVISO";
+  }catch(e){
+    console.error(e);
+    alert("No se pudo guardar en la nube.");
+  }
+};
+
+window.eliminarAviso = async function(id){
+  if(!confirm("¿Eliminar este aviso?")) return;
+
+  try{
+    await deleteDoc(doc(db, "avisos_pedidos", id));
+  }catch(e){
+    console.error(e);
+    alert("No se pudo eliminar en la nube.");
+  }
+};
+
+function pintar(){
+  let html = "";
+
+  if(avisosCloud.length === 0){
+    html = `<div class="vacio">No hay avisos pendientes</div>`;
+  }else{
+    avisosCloud.forEach((a)=>{
+      const esIncidencia = a.tipo === "INCIDENCIA";
+
+      html += `
+        <div class="card ${esIncidencia ? "incidencia" : "aviso"}">
+          <div class="tipo ${esIncidencia ? "tipoIncidencia" : "tipoAviso"}">
+            ${esIncidencia ? "INCIDENCIA" : "AVISO"}
+          </div>
+
+          <div class="texto">
+            ${esIncidencia ? "🚨" : "🛎️"} ${a.texto || ""}
+          </div>
+
+          <div class="fecha">
+            ${a.fecha || ""}
+          </div>
+
+          <button class="eliminar" onclick="eliminarAviso('${a.id}')">
+            Eliminar
+          </button>
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("lista").innerHTML = html;
+}
+
+const q = query(
+  collection(db, "avisos_pedidos"),
+  orderBy("fechaMs", "desc")
+);
+
+onSnapshot(q, (snap)=>{
+  avisosCloud = [];
+
+  snap.forEach((d)=>{
+    avisosCloud.push({
+      id:d.id,
+      ...d.data()
+    });
+  });
+
+  document.getElementById("estadoCloud").textContent =
+    "✅ Conectado a Firebase · avisos sincronizados";
+
+  pintar();
+
+}, (error)=>{
+  console.error(error);
+  document.getElementById("estadoCloud").textContent =
+    "⚠️ Error conectando con Firebase";
+  document.getElementById("lista").innerHTML =
+    `<div class="vacio">No se pudo cargar la nube.</div>`;
+});
+</script></body>
+</html>

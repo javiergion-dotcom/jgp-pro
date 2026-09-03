@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MONOLITO GPT PRO</title>
+
+<style>
+*{
+box-sizing:border-box;
+-webkit-tap-highlight-color:transparent
+}
+
+html,body{
+margin:0;
+padding:0;
+width:100%;
+min-height:100%;
+font-family:Arial,Helvetica,sans-serif;
+background:#dfe6ec
+}
+
+body{
+overflow-x:hidden
+}
+
+header{
+background:#17303d;
+color:white;
+padding:16px 24px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+box-shadow:0 4px 12px rgba(0,0,0,.25)
+}
+
+.header-left{
+display:flex;
+flex-direction:column
+}
+
+.title{
+font-size:22px;
+font-weight:700;
+letter-spacing:.3px
+}
+
+.sub{
+font-size:13px;
+opacity:.85;
+margin-top:3px
+}
+
+.header-right{
+display:flex;
+align-items:center;
+gap:16px
+}
+
+#usuario{
+background:rgba(255,255,255,.14);
+padding:9px 14px;
+border-radius:999px;
+font-size:15px;
+font-weight:700;
+white-space:nowrap;
+cursor:pointer
+}
+
+#hora{
+font-size:18px;
+font-weight:600;
+white-space:nowrap
+}
+
+.franja{
+background:#eef2f5;
+color:#4f5f69;
+padding:11px 24px;
+font-size:15px;
+border-bottom:1px solid rgba(0,0,0,.05);
+font-weight:700
+}
+
+.panel{
+padding:24px;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:30px
+}
+
+.boton{
+position:relative;
+min-height:132px;
+border-radius:28px;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+text-align:center;
+color:white;
+font-size:22px;
+font-weight:700;
+letter-spacing:.4px;
+cursor:pointer;
+user-select:none;
+padding:20px 14px;
+touch-action:manipulation;
+box-shadow:
+inset 0 3px 6px rgba(255,255,255,.24),
+inset 0 -8px 16px rgba(0,0,0,.12),
+0 16px 30px rgba(0,0,0,.30);
+transition:transform .08s ease,box-shadow .08s ease,filter .08s ease;
+}
+
+.boton:active{
+transform:translateY(10px) scale(.96);
+box-shadow:
+inset 0 10px 18px rgba(0,0,0,.26),
+0 6px 12px rgba(0,0,0,.28);
+filter:brightness(.96)
+}
+
+.boton-ia-extended{
+width:calc(100% - 48px);
+margin:10px auto 20px auto;
+min-height:64px;
+border-radius:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:12px;
+color:white;
+font-size:20px;
+font-weight:800;
+letter-spacing:.5px;
+cursor:pointer;
+user-select:none;
+padding:16px 24px;
+touch-action:manipulation;
+background:linear-gradient(180deg,#10a37f 0%,#0b7d61 100%);
+box-shadow:
+inset 0 3px 6px rgba(255,255,255,.3),
+inset 0 -4px 10px rgba(0,0,0,.15),
+0 10px 24px rgba(16,163,127,.25);
+transition:transform .08s ease,box-shadow .08s ease,filter .08s ease;
+}
+
+.boton-ia-extended:active{
+transform:translateY(4px) scale(.98);
+box-shadow:
+inset 0 6px 12px rgba(0,0,0,.3),
+0 4px 8px rgba(0,0,0,.2);
+filter:brightness(.95)
+}
+
+.azul{
+background:linear-gradient(180deg,#8fb1c7 0%,#4f6f82 100%)
+}
+
+.naranja{
+background:linear-gradient(180deg,#f6ae1b 0%,#df8b00 100%)
+}
+
+.verde{
+background:linear-gradient(180deg,#78cc4b 0%,#48a530 100%)
+}
+
+.rojoBoton{
+background:linear-gradient(180deg,#ff4b4b 0%,#c40000 100%)
+}
+
+.icono{
+font-size:46px;
+line-height:1;
+margin-bottom:12px
+}
+
+.icono-inline{
+font-size:28px;
+line-height:1
+}
+
+.contador{
+position:absolute;
+top:11px;
+right:13px;
+min-width:30px;
+height:30px;
+padding:0 8px;
+border-radius:999px;
+display:none;
+align-items:center;
+justify-content:center;
+font-size:14px;
+font-weight:700;
+color:white;
+box-shadow:0 3px 7px rgba(0,0,0,.22)
+}
+
+.rojo{
+background:#ff0000
+}
+
+.amarillo{
+background:#d99a00
+}
+
+.bloqueIA{
+width:92%;
+max-width:1000px;
+margin:14px auto 42px auto;
+background:white;
+border-radius:36px;
+padding:40px 24px;
+box-shadow:0 14px 38px rgba(0,0,0,.16);
+text-align:center
+}
+
+.nombreMarca{
+font-size:36px;
+font-weight:900;
+letter-spacing:1px;
+color:#17303d;
+margin-top:4px
+}
+
+.nombreMarca span{
+color:#10a37f
+}
+
+.frasePrincipal{
+font-size:30px;
+font-weight:900;
+color:#111;
+margin:14px auto 8px auto;
+line-height:1.2
+}
+
+.fraseSecundaria{
+font-size:18px;
+font-weight:700;
+color:#4f5f69;
+margin-bottom:20px
+}
+
+.logoGPT{
+width:90px;
+height:90px;
+object-fit:contain;
+margin-bottom:22px
+}
+
+.lineaIA{
+width:72%;
+height:1px;
+background:#a8d5ca;
+margin:20px auto 26px auto
+}
+
+.textoIA{
+max-width:860px;
+margin:0 auto 26px auto;
+font-size:20px;
+line-height:1.7;
+font-weight:700;
+color:#111
+}
+
+.textoIAsecundario{
+max-width:760px;
+margin:0 auto;
+font-size:18px;
+line-height:1.6;
+font-weight:500;
+color:#222
+}
+
+@media (max-width:900px){
+
+.panel{
+grid-template-columns:repeat(2,1fr);
+gap:20px;
+padding:18px
+}
+
+.boton{
+min-height:130px;
+font-size:19px;
+border-radius:24px
+}
+
+.boton-ia-extended{
+width:calc(100% - 36px);
+font-size:17px;
+min-height:58px;
+border-radius:16px
+}
+
+.icono{
+font-size:40px;
+margin-bottom:10px
+}
+
+header{
+padding:14px 16px
+}
+
+.franja{
+padding:10px 16px;
+font-size:14px
+}
+
+#hora{
+font-size:15px
+}
+
+#usuario{
+font-size:13px;
+padding:8px 11px
+}
+
+.bloqueIA{
+width:92%;
+padding:32px 18px;
+border-radius:30px
+}
+
+.nombreMarca{
+font-size:30px
+}
+
+.frasePrincipal{
+font-size:24px
+}
+
+.fraseSecundaria{
+font-size:16px
+}
+
+.logoGPT{
+width:78px;
+height:78px
+}
+
+.textoIA{
+font-size:17px
+}
+
+.textoIAsecundario{
+font-size:16px
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+<div class="header-left">
+<div class="title">MONOLITO GPT PRO</div>
+<div class="sub">Sistema de control · El Monolito</div>
+</div>
+
+<div class="header-right">
+<div id="usuario" onclick="cerrarSesion()">OPERADOR</div>
+<div id="hora"></div>
+</div>
+
+</header>
+
+<div class="franja" id="franjaEstado">
+Cargando estado...
+</div>
+
+<div class="panel">
+
+<div class="boton azul" onclick="abrir('proveedores.html')">
+<div class="icono">🚚</div>
+<div>PROVEEDORES</div>
+</div>
+
+<div class="boton azul" onclick="abrir('articulos.html')">
+<div class="icono">📦</div>
+<div>ARTÍCULOS</div>
+</div>
+
+<div class="boton azul" onclick="abrir('comparador.html')">
+<div class="icono">📊</div>
+<div>COMPARADOR</div>
+</div>
+
+<div class="boton verde" onclick="abrir('pedidos.html')">
+<div class="icono">📝</div>
+<div>PEDIDOS</div>
+</div>
+
+<div class="boton naranja" onclick="abrir('avisos-pedidos.html')">
+<div class="icono">🛎️</div>
+<div>AVISOS PEDIDOS</div>
+<div class="contador amarillo" id="contadorAvisosPedidos">0</div>
+</div>
+
+<div class="boton verde" onclick="abrir('pagos.html')">
+<div class="icono">💳</div>
+<div>PAGOS</div>
+</div>
+
+<div class="boton rojoBoton" onclick="abrir('incidencias.html')">
+<div class="icono">⚠️</div>
+<div>INCIDENCIAS</div>
+<div class="contador rojo" id="contadorIncidencias">0</div>
+</div>
+
+<div class="boton naranja" onclick="abrir('revision.html')">
+<div class="icono">🔎</div>
+<div>REVISIÓN</div>
+</div>
+
+<div class="boton azul" onclick="abrir('historico.html')">
+<div class="icono">📁</div>
+<div>HISTÓRICO</div>
+</div>
+
+<div class="boton azul" onclick="abrir('/documentos')">
+<div class="icono">🗂️</div>
+<div>DOCUMENTOS</div>
+</div>
+
+<div class="boton azul" onclick="abrir('ventas.html')">
+<div class="icono">💰</div>
+<div>VENTAS</div>
+</div>
+
+<div class="boton verde" onclick="abrir('cambio.html')">
+<div class="icono">💵</div>
+<div>CAMBIO</div>
+</div>
+
+<div class="boton verde" onclick="abrir('rapel.html')">
+<div class="icono">💶</div>
+<div>RAPPEL</div>
+</div>
+
+<div class="boton azul" onclick="abrir('ia-facturas.html')">
+<div class="icono">📸</div>
+<div>IA FACTURAS</div>
+</div>
+
+<div class="boton naranja" onclick="abrir('buzon.html')">
+<div class="icono">📬</div>
+<div>BUZÓN</div>
+</div>
+
+<div class="boton azul" onclick="abrir('calendario.html')">
+<div class="icono">📅</div>
+<div>CALENDARIO</div>
+</div>
+
+<div class="boton naranja" onclick="abrir('comunicacion.html')">
+<div class="icono">✉️</div>
+<div>COMUNICACIÓN</div>
+<div class="contador amarillo" id="contadorComunicacion">0</div>
+</div>
+
+<div class="boton azul" onclick="abrir('configuracion.html')">
+<div class="icono">⚙️</div>
+<div>CONFIGURACIÓN</div>
+</div>
+
+</div>
+
+<div class="boton-ia-extended" onclick="abrir('ayuda.html')">
+<div class="icono-inline">🤖</div>
+<div>AYUDA IA CHATGPT</div>
+</div>
+
+<div class="bloqueIA">
+
+<div class="nombreMarca">
+MONOLITO <span>GPT PRO</span>
+</div>
+
+<div class="frasePrincipal">
+La hostelería entra en la era IA
+</div>
+
+<div class="fraseSecundaria">
+Sistema de control hostelero impulsado por inteligencia artificial
+</div>
+
+<div class="lineaIA"></div>
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" class="logoGPT">
+
+<div class="textoIA">
+MONOLITO GPT PRO · evoluciona continuamente mediante inteligencia artificial y mejoras constantes del sistema.
+</div>
+
+<div class="textoIAsecundario">
+Para aprovechar todas las funciones de asistencia avanzada y futuras actualizaciones IA, se recomienda el uso de ChatGPT.
+</div>
+
+<div style="margin-top:38px;padding-top:24px;border-top:1px solid #e5e5e5">
+
+<div style="font-size:22px;font-weight:900;color:#17303d;margin-bottom:22px">
+Javi · Hostelero
+</div>
+
+<div style="font-size:18px;line-height:1.8;color:#222;font-weight:600">
+
+<p>
+“Mi experiencia en hostelería y la inteligencia artificial hicieron posible el sistema que muchos hosteleros siempre quisimos tener.”
+</p>
+
+<p>
+“Hostelero + IA + constancia dan resultado.”
+</p>
+
+<p>
+“La IA viene a modernizar y ayudar a la hostelería.”
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+function comprobarLogin(){
+
+const activo = localStorage.getItem("loginActivo");
+const usuario = localStorage.getItem("usuario");
+const nivel = localStorage.getItem("nivel");
+
+if(activo !== "SI" || !usuario || !nivel){
+window.location.href = "login.html";
+}
+
+}
+
+comprobarLogin();
+
+function cerrarSesion(){
+
+if(!confirm("¿Cerrar sesión en MONOLITO?")) return;
+
+localStorage.removeItem("loginActivo");
+localStorage.removeItem("usuario");
+localStorage.removeItem("nivel");
+localStorage.removeItem("ultimoLogin");
+
+window.location.href = "login.html";
+
+}
+
+function abrir(destino){
+
+setTimeout(function(){
+window.location.href = destino;
+},70);
+
+}
+
+function reloj(){
+
+const d = new Date();
+
+document.getElementById("hora").innerHTML =
+d.toLocaleDateString("es-ES") +
+" · " +
+d.toLocaleTimeString("es-ES",{
+hour:"2-digit",
+minute:"2-digit"
+});
+
+}
+
+function saludo(){
+
+const h = new Date().getHours();
+
+if(h < 6) return "Buenas noches";
+if(h < 12) return "Buenos días";
+if(h < 21) return "Buenas tardes";
+
+return "Buenas noches";
+
+}
+
+function cargarUsuario(){
+
+const usuario =
+localStorage.getItem("usuario") || "OPERADOR";
+
+document.getElementById("usuario").textContent =
+usuario;
+
+}
+
+function actualizarFranja(){
+
+const usuario =
+localStorage.getItem("usuario") || "OPERADOR";
+
+document.getElementById("franjaEstado").textContent =
+saludo() + ", " + usuario;
+
+}
+
+setInterval(function(){
+
+reloj();
+actualizarFranja();
+
+},1000);
+
+cargarUsuario();
+reloj();
+actualizarFranja();
+
+</script>
+
+<div style="
+margin-top:34px;
+padding-top:18px;
+border-top:1px solid #e5e5e5;
+font-size:14px;
+font-weight:700;
+color:#4f5f69;
+text-align:center;
+line-height:1.7;
+">
+
+MONOLITO GPT PRO® · elmonolito.es<br>
+Sistema registrado y protegido bajo dominio propio.
+
+</div>
+
+</body>
+</html>

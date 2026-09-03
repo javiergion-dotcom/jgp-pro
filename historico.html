@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HISTÓRICO · MONOLITO</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+header h2{
+  margin:0;
+  font-size:22px;
+}
+
+button{
+  border:0;
+  border-radius:14px;
+  padding:12px;
+  font-size:15px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+}
+
+.contenedor{
+  padding:16px;
+}
+
+.busqueda{
+  width:100%;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid #c5d0d8;
+  font-size:16px;
+  margin-bottom:18px;
+}
+
+.card{
+  background:white;
+  border-radius:22px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+}
+
+.cardIncidencia{
+  border:3px solid #c00000;
+  background:#fff2f2;
+}
+
+.proveedor{
+  font-size:24px;
+  font-weight:900;
+}
+
+.detalle{
+  margin-top:6px;
+  color:#56646f;
+  font-weight:700;
+}
+
+.total{
+  font-size:28px;
+  font-weight:900;
+  margin-top:10px;
+}
+
+.estado{
+  margin-top:10px;
+  padding:10px;
+  border-radius:14px;
+  font-weight:900;
+}
+
+.estadoOK{
+  background:#e7f7ea;
+  color:#1b7f2f;
+}
+
+.estadoIncidencia{
+  background:#ffd6d6;
+  color:#9b0000;
+}
+
+.historialPagos{
+  margin-top:12px;
+  background:#edf7ed;
+  border-radius:14px;
+  padding:12px;
+  font-size:14px;
+}
+
+.lineas{
+  display:none;
+  margin-top:12px;
+  border-top:1px solid #d7dfe5;
+  padding-top:12px;
+}
+
+.linea{
+  padding:10px 0;
+  border-bottom:1px solid #e0e6ea;
+}
+
+.ver{
+  width:100%;
+  background:#17303d;
+  color:white;
+  margin-top:12px;
+}
+
+.vacio{
+  background:white;
+  border-radius:22px;
+  padding:20px;
+  text-align:center;
+  font-weight:900;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  <h2>📁 HISTÓRICO</h2>
+</header>
+
+<div class="contenedor">
+
+  <input
+    type="text"
+    id="buscar"
+    class="busqueda"
+    placeholder="Buscar proveedor..."
+    onkeyup="pintar()"
+  >
+
+  <div id="lista"></div>
+
+</div>
+
+<script>
+
+function leerHistorico(){
+  return JSON.parse(
+    localStorage.getItem("pagos_historico") || "[]"
+  );
+}
+
+function euros(n){
+  return Number(n || 0)
+    .toFixed(2)
+    .replace(".",",") + " €";
+}
+
+function pintar(){
+
+  const data = leerHistorico();
+
+  const texto = document
+    .getElementById("buscar")
+    .value
+    .toLowerCase();
+
+  let html = "";
+
+  const filtrados = data.filter(p=>{
+
+    const proveedor =
+      (p.proveedor || "").toLowerCase();
+
+    return proveedor.includes(texto);
+  });
+
+  if(filtrados.length === 0){
+
+    html = `
+      <div class="vacio">
+        No hay registros en histórico
+      </div>
+    `;
+
+  }else{
+
+    filtrados.forEach((p,i)=>{
+
+      const incidencia =
+        p.estado === "INCIDENCIA";
+
+      let lineasHTML = "";
+
+      if(p.lineas && p.lineas.length){
+
+        p.lineas.forEach(l=>{
+
+          const cantidad =
+            Number(l.cantidad || 0);
+
+          const precio =
+            Number(l.precioSinIva || 0);
+
+          const base =
+            Number(l.base || cantidad * precio);
+
+          lineasHTML += `
+            <div class="linea">
+
+              <b>
+                ${l.articulo || "Artículo"}
+              </b><br>
+
+              ${cantidad}
+              ×
+              ${euros(precio)}
+
+              =
+              <b>${euros(base)}</b>
+
+            </div>
+          `;
+        });
+      }
+
+      html += `
+        <div class="card ${incidencia ? "cardIncidencia" : ""}">
+
+          <div class="proveedor">
+            ${p.proveedor || "SIN PROVEEDOR"}
+          </div>
+
+          <div class="detalle">
+            Pedido:
+            ${p.fecha || "-"}
+          </div>
+
+          <div class="detalle">
+            Pago:
+            ${p.fechaPago || "-"}
+          </div>
+
+          <div class="detalle">
+            Tipo:
+            ${p.tipoPago || "-"}
+          </div>
+
+          <div class="total">
+            ${euros(p.total)}
+          </div>
+
+          ${
+            incidencia
+            ? `
+              <div class="estado estadoIncidencia">
+                ⚠ INCIDENCIA
+              </div>
+            `
+            : `
+              <div class="estado estadoOK">
+                ✔ PAGADO
+              </div>
+            `
+          }
+
+          ${
+            p.historialPagos &&
+            p.historialPagos.length
+
+            ? `
+              <div class="historialPagos">
+
+                <b>Historial pagos:</b><br><br>
+
+                ${
+                  p.historialPagos.map(h=>`
+
+                    • ${h.fecha}
+                    → ${euros(h.importe)}
+                    (${h.tipo})
+
+                  `).join("<br>")
+                }
+
+              </div>
+            `
+            : ""
+          }
+
+          <button
+            class="ver"
+            onclick="ver(${i})"
+          >
+            Ver pedido
+          </button>
+
+          <div
+            class="lineas"
+            id="lineas${i}"
+          >
+            ${lineasHTML}
+          </div>
+
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("lista").innerHTML = html;
+}
+
+function ver(i){
+
+  const caja =
+    document.getElementById("lineas"+i);
+
+  caja.style.display =
+    caja.style.display === "block"
+    ? "none"
+    : "block";
+}
+
+function volver(){
+  window.location.href = "index.html";
+}
+
+pintar();
+
+</script>
+
+</body>
+</html>

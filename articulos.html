@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTÍCULOS · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;justify-content:space-between;align-items:center}
+button{border:0;border-radius:14px;padding:11px 14px;font-weight:800;font-size:15px}
+.volver{background:white;color:#17303d}
+.contenido{padding:16px}
+.nuevo{width:100%;background:#ff9800;color:white;margin-bottom:12px;font-size:17px}
+.base{width:100%;background:#17303d;color:white;margin-bottom:14px;font-size:17px}
+.card{background:white;border-radius:22px;padding:16px;margin-bottom:12px;box-shadow:0 8px 18px rgba(0,0,0,.12)}
+.card.inactivo{opacity:.45}
+.nombre{font-size:21px;font-weight:900}
+.detalle{margin-top:6px;color:#4f5f69}
+.precioFinal{font-size:22px;font-weight:900;margin-top:8px}
+.botones{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.editar{background:#2196f3;color:white}
+.desactivar{background:#ff0000;color:white}
+.reactivar{background:#48a530;color:white}
+.ficha{background:white;border-radius:24px;padding:16px;box-shadow:0 10px 22px rgba(0,0,0,.16)}
+label{display:block;font-weight:800;margin-top:12px}
+input,select{width:100%;padding:12px;border-radius:14px;border:1px solid #b8c2ca;font-size:16px;margin-top:6px}
+.guardar{width:100%;background:#48a530;color:white;margin-top:16px}
+.cancelar{width:100%;background:#dfe6ec;color:#17303d;margin-top:10px}
+.oculto{display:none}
+.vacio{background:white;border-radius:22px;padding:18px;text-align:center;font-weight:800}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">← Volver</button>
+  <h2>📦 ARTÍCULOS</h2>
+</header>
+
+<div class="contenido">
+
+  <div id="vistaLista">
+    <button class="nuevo" onclick="abrirNuevo()">➕ Nuevo artículo</button>
+    <button class="base" onclick="cargarArticulosBase()">📦 Cargar artículos base</button>
+    <div id="lista"></div>
+  </div>
+
+  <div id="vistaFicha" class="oculto">
+    <div class="ficha">
+      <h3 id="tituloFicha">Artículo</h3>
+
+      <input type="hidden" id="indiceArticulo">
+
+      <label>Proveedor</label>
+      <select id="proveedor"></select>
+
+      <label>Artículo</label>
+      <input id="articulo">
+
+      <label>Precio unidad / base sin IVA</label>
+      <input id="precioUnidad" type="number" step="0.0001">
+
+      <label>Formato / unidades</label>
+      <input id="formato" type="number" step="0.01">
+
+      <label>Texto formato</label>
+      <input id="unidadFormato" placeholder="CAJA 24, PACK 6, LATA 3KG...">
+
+      <label>IVA</label>
+      <select id="iva">
+        <option value="4">4%</option>
+        <option value="10">10%</option>
+        <option value="21">21%</option>
+      </select>
+
+      <button class="guardar" onclick="guardarFicha()">💾 Guardar artículo</button>
+      <button class="cancelar" onclick="cerrarFicha()">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function usuarioActual(){
+  localStorage.setItem("usuario","JAVI");
+  return "JAVI";
+}
+
+function puedeEditar(){
+  const u = usuarioActual();
+  return u === "JAVI" || u === "JAVIER" || u === "SILVIA";
+}
+
+function articulosIniciales(){
+  return [
+    {proveedor:"CANDELAS", articulo:"CAFÉ NATURAL", precioUnidad:17.00, formato:3, unidadFormato:"LATA 3KG", iva:10, activo:true},
+    {proveedor:"CANDELAS", articulo:"CAFÉ DESCAFEINADO", precioUnidad:18.00, formato:2, unidadFormato:"LATA 2KG", iva:10, activo:true},
+    {proveedor:"SANPEDRO", articulo:"COCA COLA LATA 33CL", precioUnidad:0.56, formato:24, unidadFormato:"CAJA 24", iva:21, activo:true},
+    {proveedor:"TURRADO", articulo:"MAHOU 5 ESTRELLAS 1/3", precioUnidad:17.96, formato:1, unidadFormato:"CAJA", iva:21, activo:true}
+  ];
+}
+
+function leerArticulos(){
+  return JSON.parse(localStorage.getItem("articulos") || "[]");
+}
+
+function guardarArticulos(data){
+  localStorage.setItem("articulos", JSON.stringify(data));
+}
+
+function cargarArticulosBase(){
+  if(confirm("¿Cargar artículos base?")){
+    guardarArticulos(articulosIniciales());
+    pintar();
+  }
+}
+
+function leerProveedores(){
+  let proveedores = JSON.parse(localStorage.getItem("proveedores") || "[]")
+    .filter(p => p.activo !== false);
+
+  if(proveedores.length === 0){
+    proveedores = [
+      {nombre:"CANDELAS"},
+      {nombre:"TURRADO"},
+      {nombre:"SANPEDRO"},
+      {nombre:"DEO"}
+    ];
+  }
+
+  return proveedores;
+}
+
+function precioCompra(a){
+  return Number(a.precioUnidad || 0) * Number(a.formato || 1);
+}
+
+function cargarSelectProveedores(){
+  const proveedores = leerProveedores();
+  const sel = document.getElementById("proveedor");
+
+  sel.innerHTML = proveedores.map(p =>
+    `<option value="${p.nombre}">${p.nombre}</option>`
+  ).join("");
+}
+
+function pintar(){
+  const data = leerArticulos();
+  let html = "";
+
+  if(data.length === 0){
+    html = `<div class="vacio">No hay artículos todavía.</div>`;
+  }
+
+  data.forEach((a,i)=>{
+    html += `
+      <div class="card ${a.activo === false ? "inactivo" : ""}">
+        <div class="nombre">${a.articulo || "SIN NOMBRE"}</div>
+        <div class="detalle">${a.proveedor || "SIN PROVEEDOR"} · ${a.unidadFormato || "SIN FORMATO"}</div>
+        <div class="detalle">Precio unidad/base sin IVA: ${Number(a.precioUnidad || 0).toFixed(4)} €</div>
+        <div class="detalle">Formato: ${a.formato || 1}</div>
+        <div class="detalle">IVA: ${a.iva || 21}%</div>
+        <div class="precioFinal">Precio compra sin IVA: ${precioCompra(a).toFixed(2)} €</div>
+
+        ${puedeEditar() ? `
+          <div class="botones">
+            <button class="editar" onclick="abrirEditar(${i})">Editar</button>
+            ${
+              a.activo === false
+              ? `<button class="reactivar" onclick="reactivarArticulo(${i})">Reactivar</button>`
+              : `<button class="desactivar" onclick="desactivarArticulo(${i})">Desactivar</button>`
+            }
+          </div>
+        ` : ""}
+      </div>
+    `;
+  });
+
+  document.getElementById("lista").innerHTML = html;
+}
+
+function abrirNuevo(){
+  if(!puedeEditar()) return;
+
+  cargarSelectProveedores();
+
+  document.getElementById("tituloFicha").textContent = "Nuevo artículo";
+  document.getElementById("indiceArticulo").value = "";
+  document.getElementById("articulo").value = "";
+  document.getElementById("precioUnidad").value = "";
+  document.getElementById("formato").value = "1";
+  document.getElementById("unidadFormato").value = "CAJA";
+  document.getElementById("iva").value = "21";
+
+  document.getElementById("vistaLista").classList.add("oculto");
+  document.getElementById("vistaFicha").classList.remove("oculto");
+}
+
+function abrirEditar(i){
+  if(!puedeEditar()) return;
+
+  cargarSelectProveedores();
+
+  const data = leerArticulos();
+  const a = data[i];
+
+  document.getElementById("tituloFicha").textContent = "Editar artículo";
+  document.getElementById("indiceArticulo").value = i;
+  document.getElementById("proveedor").value = a.proveedor || "";
+  document.getElementById("articulo").value = a.articulo || "";
+  document.getElementById("precioUnidad").value = a.precioUnidad || 0;
+  document.getElementById("formato").value = a.formato || 1;
+  document.getElementById("unidadFormato").value = a.unidadFormato || "CAJA";
+  document.getElementById("iva").value = a.iva || 21;
+
+  document.getElementById("vistaLista").classList.add("oculto");
+  document.getElementById("vistaFicha").classList.remove("oculto");
+}
+
+function guardarFicha(){
+  if(!puedeEditar()) return;
+
+  const articulo = document.getElementById("articulo").value.trim().toUpperCase();
+
+  if(!articulo){
+    alert("Falta el nombre del artículo.");
+    return;
+  }
+
+  let data = leerArticulos();
+  const idx = document.getElementById("indiceArticulo").value;
+
+  const nuevo = {
+    proveedor: document.getElementById("proveedor").value,
+    articulo,
+    precioUnidad: parseFloat(document.getElementById("precioUnidad").value || 0),
+    formato: parseFloat(document.getElementById("formato").value || 1),
+    unidadFormato: document.getElementById("unidadFormato").value.trim().toUpperCase(),
+    iva: parseFloat(document.getElementById("iva").value || 21),
+    activo:true
+  };
+
+  if(idx === ""){
+    data.unshift(nuevo);
+  }else{
+    const anterior = data[Number(idx)];
+    nuevo.activo = anterior.activo !== false;
+    data[Number(idx)] = nuevo;
+  }
+
+  guardarArticulos(data);
+  cerrarFicha();
+}
+
+function cerrarFicha(){
+  document.getElementById("vistaFicha").classList.add("oculto");
+  document.getElementById("vistaLista").classList.remove("oculto");
+  pintar();
+}
+
+function desactivarArticulo(i){
+  if(!puedeEditar()) return;
+
+  let data = leerArticulos();
+
+  if(confirm("¿Desactivar este artículo?")){
+    data[i].activo = false;
+    guardarArticulos(data);
+    pintar();
+  }
+}
+
+function reactivarArticulo(i){
+  if(!puedeEditar()) return;
+
+  let data = leerArticulos();
+  data[i].activo = true;
+  guardarArticulos(data);
+  pintar();
+}
+
+function volver(){
+  window.location.href = "index.html";
+}
+
+pintar();
+</script>
+
+</body>
+</html>

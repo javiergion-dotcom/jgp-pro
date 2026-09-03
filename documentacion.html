@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOCUMENTACIÓN · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}
+.volver{background:white;color:#17303d;border:0;border-radius:12px;padding:8px 12px;font-weight:900}
+.contenido{padding:16px}
+.card{background:white;border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 8px 18px rgba(0,0,0,.12)}
+.titulo{font-size:22px;font-weight:900;margin-bottom:10px}
+label{display:block;font-weight:900;margin-top:12px;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border-radius:14px;border:1px solid #b8c2ca;font-size:16px}
+textarea{min-height:80px}
+button{border:0;border-radius:14px;padding:12px;font-weight:900;font-size:15px}
+.guardar{width:100%;background:#48a530;color:white;margin-top:14px}
+.abrir{width:100%;background:#17303d;color:white;margin-top:10px}
+.borrar{width:100%;background:#c00000;color:white;margin-top:10px}
+.detalle{color:#4f5f69;margin-top:6px;font-size:14px}
+.etiqueta{display:inline-block;background:#eef2f5;border-radius:999px;padding:5px 10px;font-weight:900;font-size:12px;margin-top:8px}
+.vacio{background:white;border-radius:22px;padding:18px;text-align:center;font-weight:900}
+.aviso{background:#fff3cd;color:#7a4d00;border-radius:14px;padding:12px;font-weight:900;margin-top:10px}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  📂 DOCUMENTACIÓN
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+    <div class="titulo">Añadir documento</div>
+
+    <label>Nombre del documento</label>
+    <input id="nombre" placeholder="Ej: Licencia terraza 2026">
+
+    <label>Categoría</label>
+    <select id="categoria">
+      <option value="LICENCIA">LICENCIA</option>
+      <option value="SEGURO">SEGURO</option>
+      <option value="CONTRATO">CONTRATO</option>
+      <option value="INSPECCIÓN">INSPECCIÓN</option>
+      <option value="ACUERDO">ACUERDO</option>
+      <option value="OTRO">OTRO</option>
+    </select>
+
+    <label>Año</label>
+    <input id="anio" type="number">
+
+    <label>Archivo / foto / captura / PDF</label>
+    <input id="archivo" type="file" accept="image/*,.pdf">
+
+    <label>Nota</label>
+    <textarea id="nota" placeholder="Observación opcional..."></textarea>
+
+    <div class="aviso">
+      Primera versión: guarda documentos en este navegador/dispositivo. Para nube real y archivos grandes, más adelante se pasará a almacenamiento profesional.
+    </div>
+
+    <button class="guardar" onclick="guardarDocumento()">💾 Guardar documento</button>
+  </div>
+
+  <div id="lista"></div>
+
+</div>
+
+<script>
+function volver(){
+  window.location.href="index.html";
+}
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function esHostelero(){
+  const u = usuarioActual().toUpperCase();
+  return u === "JAVI" || u === "JAVIER" || u === "SILVIA";
+}
+
+function protegerAcceso(){
+  if(!esHostelero()){
+    alert("⚠ ACCESO SOLO HOSTELERÍA");
+    window.location.href="index.html";
+  }
+}
+
+protegerAcceso();
+
+function leerDocumentacion(){
+  return JSON.parse(localStorage.getItem("documentacion_monolito") || "[]");
+}
+
+function guardarDocumentacion(data){
+  localStorage.setItem("documentacion_monolito", JSON.stringify(data));
+}
+
+function hoyAnio(){
+  return new Date().getFullYear();
+}
+
+document.getElementById("anio").value = hoyAnio();
+
+function guardarDocumento(){
+  const nombre = document.getElementById("nombre").value.trim();
+  const categoria = document.getElementById("categoria").value;
+  const anio = Number(document.getElementById("anio").value || hoyAnio());
+  const nota = document.getElementById("nota").value.trim();
+  const file = document.getElementById("archivo").files[0];
+
+  if(!nombre){
+    alert("Pon un nombre al documento.");
+    return;
+  }
+
+  if(!file){
+    alert("Selecciona una foto, imagen, captura o PDF.");
+    return;
+  }
+
+  if(file.size > 3 * 1024 * 1024){
+    alert("Archivo demasiado grande para esta primera versión. Usa uno menor de 3 MB.");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    let data = leerDocumentacion();
+
+    data.unshift({
+      id: Date.now(),
+      nombre,
+      categoria,
+      anio,
+      nota,
+      archivoNombre:file.name,
+      archivoTipo:file.type || "",
+      archivo:e.target.result,
+      usuario:usuarioActual(),
+      fecha:new Date().toLocaleString("es-ES")
+    });
+
+    guardarDocumentacion(data);
+
+    document.getElementById("nombre").value="";
+    document.getElementById("nota").value="";
+    document.getElementById("archivo").value="";
+    document.getElementById("anio").value=hoyAnio();
+
+    pintar();
+
+    alert("Documento guardado.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function abrirDocumento(id){
+  const doc = leerDocumentacion().find(d => d.id === id);
+  if(!doc) return;
+
+  const w = window.open();
+
+  w.document.write(`
+    <html>
+      <head>
+        <title>${doc.nombre}</title>
+      </head>
+      <body style="margin:0;background:#222">
+        ${
+          doc.archivoTipo.includes("pdf")
+          ? `<iframe src="${doc.archivo}" style="width:100%;height:100vh;border:0"></iframe>`
+          : `<img src="${doc.archivo}" style="max-width:100%;display:block;margin:auto">`
+        }
+      </body>
+    </html>
+  `);
+}
+
+function eliminarDocumento(id){
+  const doc = leerDocumentacion().find(d => d.id === id);
+  if(!doc) return;
+
+  if(!confirm("Vas a eliminar: " + doc.nombre + "\n\n¿Estás seguro?")){
+    return;
+  }
+
+  let data = leerDocumentacion().filter(d => d.id !== id);
+  guardarDocumentacion(data);
+  pintar();
+}
+
+function pintar(){
+  const data = leerDocumentacion();
+  let html = "";
+
+  if(data.length === 0){
+    html = `<div class="vacio">No hay documentación guardada.</div>`;
+  }
+
+  data.forEach(d=>{
+    html += `
+      <div class="card">
+        <div class="titulo">${d.nombre}</div>
+        <div class="etiqueta">${d.categoria} · ${d.anio}</div>
+
+        <div class="detalle">Archivo: ${d.archivoNombre || "-"}</div>
+        ${d.nota ? `<div class="detalle">Nota: ${d.nota}</div>` : ""}
+        <div class="detalle">Guardado por: ${d.usuario || "OPERADOR"} · ${d.fecha || ""}</div>
+
+        <button class="abrir" onclick="abrirDocumento(${d.id})">👁 Ver documento</button>
+        <button class="borrar" onclick="eliminarDocumento(${d.id})">🗑 Eliminar documento</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("lista").innerHTML = html;
+}
+
+pintar();
+</script>
+
+</body>
+</html>

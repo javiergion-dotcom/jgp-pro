@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>INCIDENCIAS · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#eef2f5;
+  color:#17303d;
+}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:22px;
+  font-weight:900;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+  border:0;
+  border-radius:14px;
+  padding:10px 14px;
+  font-size:16px;
+  font-weight:900;
+}
+
+.contenido{padding:16px}
+
+.card{
+  background:white;
+  border-radius:22px;
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 8px 18px rgba(0,0,0,.10);
+}
+
+.cardPendiente{
+  border:3px solid #c00000;
+  background:#fff0f0;
+}
+
+.titulo{
+  font-size:22px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+
+.detalle{
+  color:#56656e;
+  margin-top:6px;
+  line-height:1.4;
+}
+
+.estado{
+  display:inline-block;
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:900;
+  margin-top:10px;
+}
+
+.rojo{
+  background:#ffd6d6;
+  color:#9b0000;
+}
+
+.verde{
+  background:#d4edda;
+  color:#155724;
+}
+
+button{
+  width:100%;
+  border:0;
+  border-radius:14px;
+  padding:13px;
+  margin-top:10px;
+  font-size:15px;
+  font-weight:900;
+  background:#17303d;
+  color:white;
+}
+
+.resolver{background:#48a530}
+
+.vacio{
+  background:white;
+  border-radius:22px;
+  padding:24px;
+  text-align:center;
+  font-weight:900;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  ⚠️ INCIDENCIAS
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+    <div class="titulo">Centro de incidencias</div>
+    <div class="detalle">
+      Aquí aparecen incidencias pendientes de pedidos, pagos o revisiones del negocio.
+    </div>
+  </div>
+
+  <div id="lista"></div>
+
+</div>
+
+<script>
+function vibrar(){
+  if(navigator.vibrate){
+    navigator.vibrate(40);
+  }
+}
+
+function sonidoClick(){
+  try{
+    const audio = new Audio("https://actions.google.com/sounds/v1/cartoon/pop.ogg");
+    audio.volume = 0.2;
+    audio.play();
+  }catch(e){}
+}
+
+function volver(){
+  vibrar();
+  sonidoClick();
+  window.location.href="index.html";
+}
+
+function leerIncidencias(){
+  return JSON.parse(localStorage.getItem("incidencias") || "[]");
+}
+
+function guardarIncidencias(data){
+  localStorage.setItem("incidencias", JSON.stringify(data));
+}
+
+function leerPagosPendientes(){
+  return JSON.parse(localStorage.getItem("pagos_pendientes") || "[]");
+}
+
+function guardarPagosPendientes(data){
+  localStorage.setItem("pagos_pendientes", JSON.stringify(data));
+}
+
+function resolverIncidencia(id){
+
+  vibrar();
+  sonidoClick();
+
+  let incidencias = leerIncidencias();
+  let pagosPendientes = leerPagosPendientes();
+
+  const fechaResolucion = new Date().toLocaleString("es-ES");
+
+  incidencias = incidencias.map(i=>{
+
+    if(i.id === id){
+      i.resuelta = true;
+      i.fechaResolucion = fechaResolucion;
+    }
+
+    return i;
+  });
+
+  pagosPendientes = pagosPendientes.map(p=>{
+
+    if(p.incidenciaId === id){
+
+      p.incidenciaResuelta = true;
+      p.fechaResolucionIncidencia = fechaResolucion;
+
+      delete p.motivoIncidencia;
+      delete p.solucionIncidencia;
+      delete p.fechaIncidencia;
+
+      if(Number(p.pendiente || 0) > 0){
+        p.estado = p.historialPagos && p.historialPagos.length ? "A CUENTA" : "PENDIENTE";
+      }else{
+        p.estado = "PENDIENTE";
+      }
+    }
+
+    return p;
+  });
+
+  guardarIncidencias(incidencias);
+  guardarPagosPendientes(pagosPendientes);
+
+  alert("Incidencia resuelta. El pago deja de aparecer bloqueado en rojo.");
+
+  pintar();
+}
+
+function pintar(){
+
+  const lista = document.getElementById("lista");
+  const incidencias = leerIncidencias();
+
+  if(incidencias.length === 0){
+    lista.innerHTML = `
+      <div class="vacio">
+        ✅ No hay incidencias registradas.
+      </div>
+    `;
+    return;
+  }
+
+  let html = "";
+
+  incidencias.forEach(i=>{
+
+    html += `
+      <div class="card ${!i.resuelta ? "cardPendiente" : ""}">
+
+        <div class="titulo">
+          ${i.titulo || "Incidencia"}
+        </div>
+
+        <div class="detalle">
+          ${i.texto || ""}
+        </div>
+
+        <div class="detalle">
+          Fecha: ${i.fecha || ""}
+        </div>
+
+        ${
+          i.resuelta
+          ? `
+            <div class="estado verde">
+              ✅ RESUELTA
+            </div>
+
+            <div class="detalle">
+              Resolución: ${i.fechaResolucion || ""}
+            </div>
+          `
+          : `
+            <div class="estado rojo">
+              ⚠️ PENDIENTE
+            </div>
+
+            <button class="resolver" onclick="resolverIncidencia(${i.id})">
+              ✅ Marcar resuelta
+            </button>
+          `
+        }
+
+      </div>
+    `;
+  });
+
+  lista.innerHTML = html;
+}
+
+pintar();
+</script>
+
+</body>
+</html>

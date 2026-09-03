@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COMPARADOR · MONOLITO</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f5;color:#17303d}
+header{background:#17303d;color:white;padding:16px;display:flex;align-items:center;gap:12px;font-size:22px;font-weight:900}
+.volver{background:white;color:#17303d;border:0;border-radius:14px;padding:10px 14px;font-weight:900}
+.contenido{padding:16px}
+.card{background:white;border-radius:24px;padding:18px;margin-bottom:16px;box-shadow:0 8px 20px rgba(0,0,0,.10)}
+.titulo{font-size:24px;font-weight:900;margin-bottom:12px}
+.detalle{color:#5a6872;margin-top:6px;line-height:1.4}
+input,select{width:100%;border:1px solid #c8d0d6;border-radius:14px;padding:14px;font-size:16px;margin-top:10px}
+button{width:100%;border:0;border-radius:16px;padding:14px;font-size:16px;font-weight:900;margin-top:12px;background:#17303d;color:white}
+.guardar{background:#17303d}
+.borrar{background:#c00000}
+.mejor{border-left:8px solid #2ea043;background:#f1fff4}
+.normal{border-left:8px solid #17303d}
+.precioFinal{font-size:34px;font-weight:900;color:#2ea043;margin-top:12px}
+.estado{display:inline-block;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:900;margin-top:10px}
+.verde{background:#d4edda;color:#155724}
+.amarillo{background:#fff3cd;color:#7a4d00}
+.rojo{background:#ffd6d6;color:#9b0000}
+.linea{margin-top:8px;font-size:15px}
+.ganador{margin-top:14px;background:#17303d;color:white;padding:14px;border-radius:16px;text-align:center;font-weight:900;font-size:18px}
+.vacio{background:white;border-radius:22px;padding:20px;text-align:center;font-weight:900}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  💰 COMPARADOR
+</header>
+
+<div class="contenido">
+
+  <div class="card">
+    <div class="titulo">Comparador inteligente</div>
+    <div class="detalle">
+      Introduce ofertas reales de proveedores y MONOLITO calcula el coste final por unidad.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="titulo">➕ Nueva oferta</div>
+
+    <input id="articulo" placeholder="Artículo. Ejemplo: Coca-Cola lata 33cl">
+    <input id="proveedor" placeholder="Proveedor">
+    <input id="precio" type="number" step="0.01" placeholder="Precio total sin IVA">
+    <input id="unidades" type="number" step="1" placeholder="Unidades compradas">
+
+    <select id="promo">
+      <option value="ninguna">Sin promoción</option>
+      <option value="descuento">Descuento %</option>
+      <option value="gratis">Unidades gratis</option>
+    </select>
+
+    <input id="descuento" type="number" step="0.01" placeholder="Descuento % si lo hay">
+    <input id="gratis" type="number" step="1" placeholder="Unidades gratis si las hay">
+    <input id="rappel" type="number" step="0.01" placeholder="Rappel % si lo hay">
+
+    <button class="guardar" onclick="guardarOferta()">💾 Guardar oferta</button>
+  </div>
+
+  <div id="resultado"></div>
+
+</div>
+
+<script>
+function volver(){
+  window.location.href="index.html";
+}
+
+function leerOfertas(){
+  return JSON.parse(localStorage.getItem("ofertas_comparador_monolito") || "[]");
+}
+
+function guardarOfertas(data){
+  localStorage.setItem("ofertas_comparador_monolito", JSON.stringify(data));
+}
+
+function n(id){
+  return Number(document.getElementById(id).value || 0);
+}
+
+function t(id){
+  return document.getElementById(id).value.trim();
+}
+
+function guardarOferta(){
+  const articulo = t("articulo");
+  const proveedor = t("proveedor");
+  const precio = n("precio");
+  const unidades = n("unidades");
+  const promo = document.getElementById("promo").value;
+  const descuento = n("descuento");
+  const gratis = n("gratis");
+  const rappel = n("rappel");
+
+  if(!articulo || !proveedor || precio<=0 || unidades<=0){
+    alert("Rellena artículo, proveedor, precio y unidades.");
+    return;
+  }
+
+  const data = leerOfertas();
+
+  data.unshift({
+    id:Date.now(),
+    articulo,
+    proveedor,
+    precio,
+    unidades,
+    promo,
+    descuento,
+    gratis,
+    rappel,
+    fecha:new Date().toLocaleString("es-ES")
+  });
+
+  guardarOfertas(data);
+
+  ["articulo","proveedor","precio","unidades","descuento","gratis","rappel"].forEach(id=>{
+    document.getElementById(id).value="";
+  });
+
+  document.getElementById("promo").value="ninguna";
+
+  pintar();
+}
+
+function costeFinal(o){
+  let precio = Number(o.precio);
+  let unidades = Number(o.unidades);
+
+  if(o.promo === "descuento"){
+    precio = precio - (precio * (Number(o.descuento || 0) / 100));
+  }
+
+  if(o.promo === "gratis"){
+    unidades = unidades + Number(o.gratis || 0);
+  }
+
+  precio = precio - (precio * (Number(o.rappel || 0) / 100));
+
+  return precio / unidades;
+}
+
+function borrarOferta(id){
+  if(!confirm("¿Eliminar esta oferta del comparador?")) return;
+
+  const data = leerOfertas().filter(o=>o.id!==id);
+  guardarOfertas(data);
+  pintar();
+}
+
+function pintar(){
+  const data = leerOfertas();
+  const cont = document.getElementById("resultado");
+
+  if(data.length===0){
+    cont.innerHTML = `<div class="vacio">No hay ofertas guardadas.</div>`;
+    return;
+  }
+
+  const articulos = [...new Set(data.map(o=>o.articulo))];
+
+  let html = "";
+
+  articulos.forEach(art=>{
+    const grupo = data.filter(o=>o.articulo===art);
+
+    let mejorPrecio = Infinity;
+    let mejorProveedor = "";
+
+    grupo.forEach(o=>{
+      const c = costeFinal(o);
+      if(c < mejorPrecio){
+        mejorPrecio = c;
+        mejorProveedor = o.proveedor;
+      }
+    });
+
+    html += `
+      <div class="ganador">
+        🏆 ${art}<br><br>
+        Mejor compra actual: ${mejorProveedor}
+      </div>
+    `;
+
+    grupo.forEach(o=>{
+      const c = costeFinal(o);
+      const diferencia = c - mejorPrecio;
+
+      let estado = "🔴 MÁS CARO";
+      let color = "rojo";
+      let clase = "normal";
+
+      if(c === mejorPrecio){
+        estado = "🏆 MEJOR COMPRA";
+        color = "verde";
+        clase = "mejor";
+      }else if(diferencia <= 0.03){
+        estado = "🟡 PRECIO SIMILAR";
+        color = "amarillo";
+      }
+
+      html += `
+        <div class="card ${clase}">
+          <div class="titulo">${o.proveedor}</div>
+
+          <div class="linea">Artículo: ${o.articulo}</div>
+          <div class="linea">Precio base: ${Number(o.precio).toFixed(2)} €</div>
+          <div class="linea">Unidades: ${o.unidades}</div>
+          <div class="linea">Promo: ${textoPromo(o)}</div>
+          <div class="linea">Rappel: ${o.rappel || 0}%</div>
+          <div class="linea">Fecha oferta: ${o.fecha}</div>
+
+          <div class="precioFinal">${c.toFixed(3)} €/unidad</div>
+
+          <div class="estado ${color}">${estado}</div>
+
+          <button class="borrar" onclick="borrarOferta(${o.id})">🗑 Eliminar oferta</button>
+        </div>
+      `;
+    });
+  });
+
+  cont.innerHTML = html;
+}
+
+function textoPromo(o){
+  if(o.promo === "descuento"){
+    return "Descuento " + (o.descuento || 0) + "%";
+  }
+
+  if(o.promo === "gratis"){
+    return "+" + (o.gratis || 0) + " unidades gratis";
+  }
+
+  return "Sin promoción";
+}
+
+pintar();
+</script>
+
+</body>
+</html>

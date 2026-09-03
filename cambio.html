@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAMBIO · MONOLITO</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#eef2f5;color:#17303d}
+
+header{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  font-weight:900;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.volver{
+  background:white;
+  color:#17303d;
+  border:0;
+  border-radius:10px;
+  padding:6px 10px;
+  font-weight:900;
+}
+
+.contenedor{padding:16px}
+
+.linea{
+  background:white;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+}
+
+input{
+  width:90px;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  text-align:center;
+}
+
+textarea{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+.total{
+  background:#17303d;
+  color:white;
+  padding:16px;
+  border-radius:16px;
+  font-size:22px;
+  font-weight:900;
+  margin-top:15px;
+  text-align:center;
+}
+
+.resultado{
+  margin-top:12px;
+  padding:14px;
+  border-radius:12px;
+  font-weight:900;
+  text-align:center;
+}
+
+.ok{background:#e8f5e9;color:#2e7d32}
+.error{background:#ffe5e5;color:#c00000}
+
+.boton{
+  width:100%;
+  margin-top:12px;
+  padding:14px;
+  border:0;
+  border-radius:14px;
+  font-weight:900;
+  font-size:16px;
+}
+
+.totalizar{background:#4caf50;color:white}
+.borrar{background:#c00000;color:white}
+.historial{background:#17303d;color:white}
+
+.info{
+  margin-top:10px;
+  font-size:13px;
+  color:#4f5f69;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <button class="volver" onclick="volver()">←</button>
+  💰 CAMBIO
+</header>
+
+<div class="contenedor">
+
+<div class="linea">
+  <div>CAMBIO ESPERADO</div>
+  <input id="esperado" type="number" onfocus="this.select()" onclick="this.select()" onchange="guardarEsperado()">
+</div>
+
+</div>
+
+<div class="contenedor" id="lista"></div>
+
+<div class="contenedor">
+  <div class="total" id="total">0,00 €</div>
+  <div class="resultado" id="resultado"></div>
+
+  <textarea id="nota" placeholder="Explicación (si falta o sobra)"></textarea>
+
+  <button class="boton totalizar" onclick="totalizar()">TOTALIZAR</button>
+
+  <button class="boton historial" onclick="window.location.href='cambio_historial.html'">
+    📊 VER HISTORIAL
+  </button>
+
+  <button class="boton borrar" id="btnBorrar" onclick="borrar()">BORRAR</button>
+
+  <div class="info" id="info"></div>
+</div>
+
+<script>
+
+function volver(){window.location.href="index.html"}
+
+function usuarioActual(){
+  return localStorage.getItem("usuario") || "OPERADOR";
+}
+
+function esAdmin(){
+  let u = usuarioActual().toUpperCase();
+  return u==="JAVI" || u==="JAVIER" || u==="SILVIA";
+}
+
+const valores = [50,20,10,5,2,1,0.50,0.20,0.10,0.05,0.02,0.01];
+let cantidades = {};
+let bloqueado = false;
+
+function pintar(){
+  let html="";
+  valores.forEach(v=>{
+    html+=`
+    <div class="linea">
+      <div>${v} €</div>
+      <input type="number" min="0" value="0"
+        onfocus="this.select()" onclick="this.select()"
+        onchange="cambiar(${v},this.value)">
+    </div>`;
+  });
+  document.getElementById("lista").innerHTML=html;
+}
+
+function cambiar(valor,cant){
+  if(bloqueado) return;
+  cantidades[valor]=Number(cant||0);
+  calcular();
+}
+
+function calcular(){
+  let total=0;
+  valores.forEach(v=>{
+    total += (cantidades[v]||0)*v;
+  });
+  document.getElementById("total").textContent =
+    total.toFixed(2).replace(".",",")+" €";
+}
+
+function cargarEsperado(){
+  let e = Number(localStorage.getItem("cambio_esperado") || 0);
+  document.getElementById("esperado").value = e;
+  if(!esAdmin()){
+    document.getElementById("esperado").disabled = true;
+  }
+}
+
+function guardarEsperado(){
+  if(!esAdmin()) return;
+  let v = Number(document.getElementById("esperado").value || 0);
+  localStorage.setItem("cambio_esperado", v);
+}
+
+function totalizar(){
+
+  let total=0;
+  valores.forEach(v=>{
+    total += (cantidades[v]||0)*v;
+  });
+
+  if(total <= 0){
+    alert("Introduce el cambio antes de totalizar");
+    return;
+  }
+
+  let esperado = Number(localStorage.getItem("cambio_esperado") || 0);
+  let diferencia = total - esperado;
+
+  let texto="";
+  let clase="ok";
+
+  if(diferencia === 0){
+    texto="✅ CAMBIO CORRECTO";
+  }else if(diferencia > 0){
+    texto="⚠ SOBRAN " + diferencia.toFixed(2) + " €";
+    clase="error";
+  }else{
+    texto="⚠ FALTAN " + Math.abs(diferencia).toFixed(2) + " €";
+    clase="error";
+  }
+
+  document.getElementById("resultado").textContent = texto;
+  document.getElementById("resultado").className = "resultado " + clase;
+
+  let nuevoEsperado = esperado + diferencia;
+  localStorage.setItem("cambio_esperado", nuevoEsperado);
+  document.getElementById("esperado").value = nuevoEsperado;
+
+  guardar(total,diferencia);
+  bloquear();
+}
+
+function guardar(total,diferencia){
+  let data = JSON.parse(localStorage.getItem("cambio") || "{}");
+  let ahora = new Date();
+  let clave = ahora.toLocaleDateString("es-ES");
+
+  data[clave]={
+    total,
+    diferencia,
+    nota:document.getElementById("nota").value,
+    usuario:usuarioActual(),
+    hora:ahora.toLocaleTimeString("es-ES")
+  };
+
+  localStorage.setItem("cambio", JSON.stringify(data));
+
+  document.getElementById("info").textContent =
+    "Guardado por " + usuarioActual() + " · " +
+    ahora.toLocaleTimeString("es-ES");
+}
+
+function bloquear(){
+  bloqueado=true;
+  document.querySelectorAll("input").forEach(i=>{
+    if(i.id !== "esperado"){
+      i.disabled=true;
+    }
+  });
+}
+
+function borrar(){
+  if(!esAdmin()){
+    alert("Solo Javi o Silvia pueden borrar");
+    return;
+  }
+
+  if(!confirm("¿Borrar registro de hoy?")) return;
+
+  let data = JSON.parse(localStorage.getItem("cambio") || "{}");
+  let clave = new Date().toLocaleDateString("es-ES");
+
+  delete data[clave];
+
+  localStorage.setItem("cambio", JSON.stringify(data));
+
+  location.reload();
+}
+
+pintar();
+cargarEsperado();
+
+document.getElementById("btnBorrar").style.display =
+  esAdmin() ? "block" : "none";
+
+</script>
+
+</body>
+</html>
